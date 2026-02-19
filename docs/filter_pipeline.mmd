@@ -1,0 +1,4 @@
+flowchart LR
+    ALL["Todos los cursos"] -->|DegreeFilter| F1["Cursos de carreras seleccionadas"]
+    F1 -->|SubjectFilter| F2["Cursos de materias seleccionadas"]
+    F2 --> GEN["ScheduleGenerator"]

@@ -1,0 +1,58 @@
+classDiagram
+    class CourseFilter {
+        <<interface>>
+        +satify(course: Course): boolean
+    }
+
+    class Category {
+        <<interface>>
+        +title: string
+        +values: Object[]
+        +selectedValues: unknown[]
+        +toCourseFilter(): CourseFilter
+        +onClick(id: number): void
+        +isSelected(id: number): boolean
+        +filterWithCategories(cats: Category[]): void
+    }
+
+    class DynamicCategory~T~ {
+        <<abstract>>
+        #_original_values: Object[]
+        #_selected: Set~number~
+        #deleteSelectedValuesWithoutRelation()
+        +filterWithDegreesAndSemesters(degrees, semesters)
+    }
+
+    class DegreeCategory {
+        +toCourseFilter(): DegreeFilter
+    }
+    class SemesterCategory {
+        +toCourseFilter(): SemesterFilter
+    }
+    class SubjectCategory {
+        +toCourseFilter(): SubjectFilter
+    }
+    class ProfessorCategory {
+        +toCourseFilter(): ProfessorFilter
+    }
+    class ModalityCategory {
+        +toCourseFilter(): ModalityFilter
+    }
+    class GroupCategory {
+        +toCourseFilter(): GroupFilter
+    }
+
+    Category <|.. DegreeCategory
+    Category <|.. SemesterCategory
+    Category <|.. ModalityCategory
+    Category <|.. GroupCategory
+    DynamicCategory <|-- SubjectCategory
+    DynamicCategory <|-- ProfessorCategory
+    Category <|.. DynamicCategory
+
+    DegreeCategory ..> CourseFilter : crea DegreeFilter
+    SubjectCategory ..> CourseFilter : crea SubjectFilter
+    SemesterCategory ..> CourseFilter : crea SemesterFilter
+    ProfessorCategory ..> CourseFilter : crea ProfessorFilter
+    ModalityCategory ..> CourseFilter : crea ModalityFilter
+    GroupCategory ..> CourseFilter : crea GroupFilter

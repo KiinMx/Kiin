@@ -1,0 +1,47 @@
+flowchart TB
+    subgraph Core["Core Framework"]
+        NEXT["Next.js 15"]
+        REACT["React 18"]
+        TS["TypeScript"]
+    end
+
+    subgraph Styling["Estilos & Animaciones"]
+        TW["TailwindCSS"]
+        FM["Framer Motion"]
+        HERO["HeroUI (slider, spinner)"]
+        PART["tsparticles"]
+    end
+
+    subgraph DataViz["Visualización"]
+        FC["FullCalendar<br/>(core + timegrid + react)"]
+        SA["SweetAlert2"]
+    end
+
+    subgraph DataProc["Procesamiento de Datos"]
+        EXCEL["ExcelJS"]
+        CSV["csv-parser"]
+        MOMENT["Moment.js"]
+    end
+
+    subgraph Auth["Autenticación"]
+        SUPA["@supabase/auth-helpers-react"]
+    end
+
+    subgraph Deploy["Despliegue"]
+        VA["@vercel/analytics"]
+        ADS["Google AdSense"]
+    end
+
+    REACT --> NEXT
+    TS --> NEXT
+    TW --> REACT
+    FM --> REACT
+    HERO --> REACT
+    PART --> REACT
+    FC --> REACT
+    SA --> REACT
+    SUPA --> NEXT
+    EXCEL --> NEXT
+    CSV --> EXCEL
+    MOMENT --> REACT
+    VA --> NEXT

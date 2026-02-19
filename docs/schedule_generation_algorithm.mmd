@@ -1,0 +1,15 @@
+flowchart TD
+    START["Inicio: schedules = []"] --> LOOP["Para cada curso C en cursos filtrados"]
+    LOOP --> CHECK["Para cada horario S existente"]
+    CHECK --> COMPAT{"¿C es compatible<br/>con todos los cursos de S?"}
+    COMPAT -->|"Sí Y materia no duplicada"| EXTEND["Crear nuevo S' = S + C"]
+    COMPAT -->|"No (conflicto de tiempo)"| INCOMPAT["Agregar C a S.incompatibleCourses"]
+    COMPAT -->|"Misma materia"| SKIP["Omitir"]
+    EXTEND --> NEXT
+    INCOMPAT --> NEXT
+    SKIP --> NEXT
+    NEXT["Siguiente horario"] --> CHECK
+    CHECK -->|"No más horarios"| SOLO["Crear horario unitario {C}"]
+    SOLO --> LOOP
+    LOOP -->|"No más cursos"| SORT["Ordenar por # cursos (desc)"]
+    SORT --> END["Retornar Schedule[]"]

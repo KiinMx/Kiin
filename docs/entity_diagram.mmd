@@ -1,0 +1,82 @@
+classDiagram
+    class Course {
+        -_id: number
+        -_subject: Subject
+        -_professor: Professor
+        -_group: number
+        -_sessions: Session[]
+        -_modality: string
+        -_weekHours: number
+        -_acceptModifications: boolean
+        +addSession(session: Session)
+    }
+
+    class Subject {
+        -_id: number
+        -_name: string
+        -_semesters: number[]
+        -_degreesIds: number[]
+        -_coursesIds: number[]
+        -_professorsIds: number[]
+        -_type: string
+        -_model: string
+        -_degreeResume: string
+        -_credits: number
+        +addDegree(degreeId: number)
+        +addCourse(courseId: number)
+        +addProfessor(profId: number)
+    }
+
+    class Professor {
+        -_id: number
+        -_names: string
+        -_lastNames: string
+        +fullName: string
+    }
+
+    class Degree {
+        -_id: number
+        -_name: string
+        -_subjects: Subject[]
+        +addSubject(subject: Subject)
+    }
+
+    class Session {
+        -_day: string
+        -_startHour: Moment
+        -_endHour: Moment
+        -_room: string
+    }
+
+    class Schedule {
+        -_id: number
+        -_subjects: Subject[]
+        -_professors: Set~Professor~
+        -_courses: Course[]
+        -_incompatibleCourses: Course[]
+        +addCourse(course: Course)
+        +addIncompatibleCourse(course: Course)
+    }
+
+    class ScheduleGenerator {
+        +sessionCompatible(s1: Session, s2: Session): boolean
+        +courseCompatible(c1: Course, c2: Course): boolean
+        +generateSchedules(courses: Course[]): Schedule[]
+    }
+
+    class Pivot {
+        <<interface>>
+        +idSubject: number
+        +idProfessor: number
+    }
+
+    Course "n" --> "1" Subject : pertenece a
+    Course "n" --> "1" Professor : impartido por
+    Course "1" *-- "1..*" Session : compuesto de
+    Subject "n" o--o "n" Degree : muchos a muchos (vía IDs)
+    Schedule "1" o-- "n" Course : contiene
+    Schedule "1" o-- "n" Course : incompatibleCourses
+    ScheduleGenerator ..> Course : evalúa
+    ScheduleGenerator ..> Schedule : genera
+    Pivot ..> Subject : referencia
+    Pivot ..> Professor : referencia

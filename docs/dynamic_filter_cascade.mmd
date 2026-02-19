@@ -1,0 +1,5 @@
+flowchart LR
+    D[("🎓 Carrera<br/>(DegreeCategory)")] -->|actualiza opciones| S["📚 Materia<br/>(SubjectCategory)"]
+    D -->|actualiza opciones| P["👨‍🏫 Profesor<br/>(ProfessorCategory)"]
+    S -->|actualiza opciones| P
+    D -->|al deseleccionar| X["❌ Auto-deselección<br/>de valores huérfanos"]

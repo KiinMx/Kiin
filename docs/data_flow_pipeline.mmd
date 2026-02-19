@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant XLSX as 📁 Excel (.xlsx)
+    participant DAO as CoursesModelDAO
+    participant API as API Routes (/api/*)
+    participant LS as 🗄️ localStorage
+    participant DS as Client DataSources
+    participant MAP as Mapper
+    participant UI as 🖥️ Generador Page
+    participant SG as ScheduleGenerator
+
+    Note over XLSX,DAO: Carga inicial (lazy, una sola vez)
+    API->>DAO: globalInitialLoad()
+    DAO->>XLSX: Leer archivo más reciente
+    XLSX-->>DAO: Datos crudos
+    DAO->>DAO: Excel → CSV → CourseCSV[]
+    DAO->>API: Entities (Course, Subject, Degree, Professor)
+
+    Note over API,DS: Petición del cliente
+    DS->>API: GET /api/version
+    API-->>DS: "1.4.1_20.05.2025"
+    DS->>LS: ¿Existe cache con esta versión?
+
+    alt Cache válido
+        LS-->>DS: Datos JSON cacheados
+    else Cache inválido o inexistente
+        DS->>API: GET /api/courses/all (+ degrees, subjects, professors)
+        API-->>DS: JSON[]
+        DS->>LS: Guardar con clave "entity-info-{versión}"
+        DS->>LS: Limpiar versiones anteriores
+    end
+
+    DS->>MAP: JSON plano
+    MAP-->>DS: Entidades rehidratadas (Course[], Subject[], etc.)
+
+    Note over UI,SG: Generación en el cliente
+    UI->>UI: Usuario selecciona filtros
+    UI->>DS: Obtener cursos filtrados (FilterImpl)
+    DS-->>UI: Course[] filtrados
+    UI->>SG: generateSchedules(courses)
+    SG-->>UI: Schedule[]
+    UI->>UI: Aplicar pins + pivots + slider
+    UI->>UI: Renderizar calendario + paginación

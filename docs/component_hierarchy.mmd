@@ -1,0 +1,24 @@
+flowchart TD
+    GP["generador/page.tsx<br/>(Estado principal)"]
+    GP --> SB["SideBar<br/>(Overlay de filtros)"]
+    GP --> SV["SubjectsView<br/>(Panel izquierdo)"]
+    GP --> SchV["SchedulesView<br/>(Panel central)"]
+    GP --> CS["CurrentSchedule<br/>(Panel derecho)"]
+
+    SB --> FS["FilterSelector"]
+    FS --> DC["DegreeCategory<br/>(CategorySelector)"]
+    FS --> SC1["Semestre 1..9<br/>(CategorySelector × 9)"]
+
+    SV --> PIN["Botones Pin materia/profesor"]
+    SV --> DEL["Botón eliminar materia"]
+
+    SchV --> UI_UP["UpdateIndicator"]
+    SchV --> SL["SliderBar"]
+    SchV --> PG["Pagination"]
+    SchV --> CAL["Calendar<br/>(FullCalendar)"]
+
+    CS --> SHARE["Botón compartir<br/>(genera URL)"]
+    CS --> EXP["Dropdown exportar"]
+    EXP --> GCB["GoogleCalendarButton"]
+    EXP --> ICS["ICSButton"]
+    CS --> CONF["Botón conflictos"]

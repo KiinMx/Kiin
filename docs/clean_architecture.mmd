@@ -1,0 +1,50 @@
+flowchart TB
+    subgraph Presentation["🖥️ Capa de Presentación"]
+        direction TB
+        A["App Router Pages<br/>(generador, faq, contact, motivation)"]
+        B["Components<br/>(Calendar, FilterSelector, NavBar, etc.)"]
+        C["Widgets<br/>(SubjectsView, SchedulesView, CurrentSchedule)"]
+    end
+
+    subgraph Domain["🏛️ Capa de Dominio"]
+        direction TB
+        D["Entities<br/>(Course, Subject, Session, Schedule, etc.)"]
+        E["Repository Interfaces<br/>(CoursesRepository, DegreesRepository, etc.)"]
+        F["DataSource Interfaces<br/>(CoursesDataSource, DegreesDataSource, etc.)"]
+        G["ScheduleGenerator<br/>(algoritmo core)"]
+        H["Filters & Categories<br/>(CourseFilter, Category, DynamicCategory)"]
+    end
+
+    subgraph Infrastructure["⚙️ Capa de Infraestructura"]
+        direction TB
+        I["Client DataSources<br/>(fetch API + localStorage cache)"]
+        J["Repository Implementations<br/>(delegación a DataSource)"]
+        K["Mapper<br/>(JSON → clases de dominio)"]
+        L["FilterImpl<br/>(pipeline de filtrado)"]
+    end
+
+    subgraph ServerData["📊 Capa de Datos (Servidor)"]
+        direction TB
+        M["API Routes<br/>(/api/courses/all, /api/degrees/all, etc.)"]
+        N["CoursesModelDAO<br/>(lectura Excel)"]
+        O["Server Mappers<br/>(CourseMapper, SubjectMapper)"]
+        P["initialLoad<br/>(orquestación)"]
+    end
+
+    subgraph External["☁️ Servicios Externos"]
+        Q[("📁 Archivos Excel<br/>public/data/*.xlsx")]
+        R[("🔐 Supabase<br/>(OAuth Google)")]
+        S[("📅 Google Calendar API")]
+    end
+
+    A --> B & C
+    B & C --> D & G & H
+    G --> D
+    H --> D
+    J --> I
+    I --> K
+    I --> M
+    L --> I
+    M --> N & O & P
+    N --> Q
+    B --> R --> S

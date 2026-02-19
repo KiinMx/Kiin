@@ -1,0 +1,5 @@
+flowchart LR
+    A["1. Degrees<br/>(extraer de PE)"] --> B["2. Subjects<br/>(vincular a Degrees)"]
+    B --> C["3. Professors<br/>(deduplicar)"]
+    C --> D["4. Courses<br/>(fusionar duplicados)"]
+    D --> E["5. Vinculación cruzada<br/>(courseIds + profIds → Subjects)"]

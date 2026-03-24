@@ -47,11 +47,15 @@ export class CourseMapper {
                 continue;
             }
 
-            const timeSlots = result[day[0]].split('\r\n');
-            const classrooms = result[day[1]].split('\r\n');
+            const timeSlots = result[day[0]].split(/\r?\n/).map(t => t.trim()).filter(Boolean);
+            const classrooms = result[day[1]].split(/\r?\n/).map(c => c.trim()).filter(Boolean);
 
             for (let i = 0; i < timeSlots.length; i++) {
                 const hours = this.getHours(timeSlots[i]);
+                if (!hours || hours.length !== 2) {
+                    continue;
+                }
+
                 const classroom = classrooms[i] || classrooms[0]; // Use first classroom if not enough classrooms
                 const session = new Session(day[0], hours[0], hours[1], classroom);
                 sessions.push(session);
@@ -60,8 +64,8 @@ export class CourseMapper {
 
         return sessions;
     }
-    private static getHours(time: string): moment.Moment[] {
-        const hours = time.split('-');
+    private static getHours(time: string): moment.Moment[] | null {
+        const hours = time.split('-').map(h => h.trim());
 
         if (hours.length === 2) {
             return [
@@ -69,7 +73,7 @@ export class CourseMapper {
                 moment.utc(hours[1], 'HH:mm')
             ];
         }
-        return [moment.utc(), moment.utc()];
+        return null;
     }
 
 }

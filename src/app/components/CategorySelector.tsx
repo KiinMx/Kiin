@@ -55,7 +55,7 @@ const ValueCell: React.FC<{
     );
 };
 
-const CategorySelector: React.FC<CategoryProps> = ({ category, onClick, setIsDegreeSelected, isDegreeCategory = false, degreeTitle }) => {
+const CategorySelector: React.FC<CategoryProps> = ({ category, onClick, isDegreeCategory = false, degreeTitle }) => {
     const [isVisible, setIsVisible] = useState(false);
 
 
@@ -84,7 +84,6 @@ const CategorySelector: React.FC<CategoryProps> = ({ category, onClick, setIsDeg
                             if (isDegreeCategory) {
                                 setIsVisible(false);
                             }
-                            setIsDegreeSelected(true)
                         }}
                         disabled={false}
                     />

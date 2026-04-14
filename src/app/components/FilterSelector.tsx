@@ -33,7 +33,7 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) 
         if (degreeCategory.selectedValues.length === 0) {
             setDegreeTitle("");
         } else {
-            const selectedValues = degreeCategory.values.find(v => v.id === valueId);
+            const selectedValue = degreeCategory.values.find(v => v.id === valueId);
             setDegreeTitle(selectedValue.label);
         }
     };

@@ -23,16 +23,19 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) 
         onClick(newCategories);
     }
 
-    const [isDegreeSelected, setIsDegreeSelected] = useState(false);
     const [degreeTitle, setDegreeTitle] = useState<string>("");
+    const isDegreeSelected = degreeTitle.length !== 0;
 
     const handleDegreeClick = (categoryIndex: number, valueId: number) => {
         const degreeCategory = categories[categoryIndex];
-        const selectedValue = degreeCategory.values.find(v => v.id === valueId);
-        if (selectedValue) {
-            setDegreeTitle(selectedValue.label);
-        }
         refreshCategories(categoryIndex, valueId);
+
+        if (degreeCategory.selectedValues.length === 0) {
+            setDegreeTitle("");
+        } else {
+            const selectedValues = degreeCategory.values.find(v => v.id === valueId)!;
+            setDegreeTitle(selectedValues.label);
+        }
     };
 
     return (
@@ -41,11 +44,11 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) 
             <ul className="space-y-2 ">
                 {
                     categories.filter(c => c instanceof DegreeCategory).map((category, index) => (
-                        <CategorySelector 
-                            isDegreeSelected={isDegreeSelected} 
-                            setIsDegreeSelected={setIsDegreeSelected} 
-                            key={index} 
-                            category={category} 
+                        <CategorySelector
+                            isDegreeSelected={isDegreeSelected}
+
+                            key={index}
+                            category={category}
                             onClick={(valueId) => handleDegreeClick(index, valueId)}
                             isDegreeCategory={true}
                             degreeTitle={degreeTitle}
@@ -58,7 +61,7 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) 
             {isDegreeSelected ? <ul className="space-y-2 ">
                 {
                     categories.filter(c => c instanceof SubjectCategory).map((category, index) => (
-                        <CategorySelector isDegreeSelected={isDegreeSelected} setIsDegreeSelected={setIsDegreeSelected} key={index + 1} category={category} onClick={(valueId) => refreshCategories(index + 1, valueId)} />
+                        <CategorySelector isDegreeSelected={isDegreeSelected} key={index + 1} category={category} onClick={(valueId) => refreshCategories(index + 1, valueId)} />
                     ))
                 }
             </ul> : <span className='text-gray-500'>

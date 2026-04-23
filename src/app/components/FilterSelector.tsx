@@ -1,11 +1,10 @@
 "use client"
 import CategorySelector from '@/app/components/CategorySelector';
+import ConfirmationModal from './ConfirmationModal';
 import Category from '@/domain/entities/Category';
 import DegreeCategory from '@/domain/entities/DegreeCategory';
 import SubjectCategory from '@/domain/entities/SubjectCategory';
 import React, { useState } from 'react';
-
-
 interface FilterSelectorProps {
     categories: Category[]
     onClick: (newCategories: Category[]) => void
@@ -14,6 +13,8 @@ interface FilterSelectorProps {
 
 
 const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) => {
+    const [showAlert, setShowAlert] = useState(false);
+    const [pendingSelection, setPendingSelection] = useState<{idx: number, id: number} | null>(null);
     const refreshCategories = (categoryIndex: number, valueId: number) => {
         const newCategories = [...categories];
         const category = newCategories[categoryIndex]
@@ -26,15 +27,27 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) 
     const [degreeTitle, setDegreeTitle] = useState<string>("");
     const isDegreeSelected = degreeTitle.length !== 0;
 
-    const handleDegreeClick = (categoryIndex: number, valueId: number) => {
+    // 2. Nueva función de ejecución (aislando la responsabilidad de actualización)
+    const executeRefresh = (categoryIndex: number, valueId: number) => {
         const degreeCategory = categories[categoryIndex];
         refreshCategories(categoryIndex, valueId);
 
         if (degreeCategory.selectedValues.length === 0) {
             setDegreeTitle("");
         } else {
-            const selectedValues = degreeCategory.values.find(v => v.id === valueId)!;
-            setDegreeTitle(selectedValues.label);
+            const selectedValue = degreeCategory.values.find(v => v.id === valueId);
+            if (selectedValue) setDegreeTitle(selectedValue.label);
+        }
+    };
+
+    // 3. Modificación del manejador para interceptar el flujo
+    const handleDegreeClick = (categoryIndex: number, valueId: number) => {
+        // Si ya hay una carrera, pausamos y pedimos permiso (Patrón Command)
+        if (isDegreeSelected) {
+            setPendingSelection({ idx: categoryIndex, id: valueId });
+            setShowAlert(true);
+        } else {
+            executeRefresh(categoryIndex, valueId);
         }
     };
 
@@ -67,6 +80,24 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) 
             </ul> : <span className='text-gray-500'>
                 Selecciona tu Plan de Estudios primero
             </span>}
+
+            // 4. Integración en el JSX (al final del return)
+            {showAlert && (
+                <ConfirmationModal 
+                    title="¿Cambiar de carrera?"
+                    message="Se perderán las materias que no pertenezcan a tu nueva carrera seleccionada."
+                    onConfirm={() => {
+                        if (pendingSelection) 
+                            executeRefresh(pendingSelection.idx, pendingSelection.id);
+                        setShowAlert(false);
+                        setPendingSelection(null);
+                    }}
+                    onCancel={() => {
+                        setShowAlert(false);
+                        setPendingSelection(null);
+                    }}
+                />
+            )}
 
         </div>
     )

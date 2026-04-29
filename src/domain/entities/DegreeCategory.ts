@@ -6,28 +6,31 @@ import DegreeFilter from "@/domain/entities/DegreeFilter";
 
 export default class DegreeCategory implements Category {
     title: string;
-    values: {label: string, id: number, value: Degree}[];
+    values: { label: string, id: number, value: Degree }[];
     private _selectedValues: Degree[] = [];
 
     constructor(title: string, values: Degree[]) {
         this.title = title;
-        this.values = values.map(degree => ({label: degree.name, id: degree.id, value: degree}));
+        this.values = values.map(degree => ({ label: degree.name, id: degree.id, value: degree }));
     }
-    
+
     filterWithCategories() {
         // NOT IMPLEMENTED
     }
 
     onClick(id: number): void {
-        const selectedDegreeIndex = this._selectedValues.findIndex(degree => degree.id === id);
-        if (selectedDegreeIndex === -1) {
-            const newSelectedDegree = this.values.find(degree => degree.id === id);
-            if (!newSelectedDegree) return
+        const selectedDegree = this._selectedValues[0];
 
-            this._selectedValues.push(newSelectedDegree.value);
+        if (selectedDegree?.id !== id) {
+            const newSelectedDegree = this.values.find(degree => degree.id === id);
+            if (!newSelectedDegree) return;
+
+            this._selectedValues[0] = newSelectedDegree.value;
+
             return;
         }
-        this._selectedValues.splice(selectedDegreeIndex, 1);
+
+        this._selectedValues.splice(0, 1);
     }
 
     get selectedValues(): Degree[] {

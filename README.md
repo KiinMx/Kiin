@@ -24,9 +24,14 @@ Nació como un proyecto escolar dentro de la **Facultad de Matemáticas**, pero 
 
   * Pensado para ser rápido, claro y fácil de usar.
   * Ideal para periodos de inscripción con poco tiempo para decidir.
-* 📅 Exportación a Google Calendar
+
+* 📅 **Exportación a Google Calendar**
   * Integra tu horario directamente con Google Calendar.
   * Recibe notificaciones y recordatorios automáticos.
+
+* 📌 **Funcionalidades avanzadas de personalización**
+  * **Anclaje de profesores:** Asegura tus clases con los docentes que prefieres en todas las combinaciones generadas.
+  * **Anclaje de materias:** Fija horarios específicos para asignaturas de alta prioridad y deja que el sistema construya el resto del horario a su alrededor.
 
 * 🌐 **100% web**
 

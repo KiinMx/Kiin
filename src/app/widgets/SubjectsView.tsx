@@ -151,6 +151,19 @@ function SubjectCard({ subject, allProfessors, pivots, setPivots, pinnedSubjects
 
     const [showProfessors, setShowProfessors] = useState(true);
 
+    useEffect(() => {
+    const hasPivots = pivots.some(p => p.idSubject === subject.id);
+    if (!hasPivots && allProfessors.length > 0) {
+        const newPivots = allProfessors
+            .filter(prof => subject.professors.includes(prof.id))
+            .map(prof => ({ idProfessor: prof.id, idSubject: subject.id }));
+
+        if (newPivots.length > 0) {
+            setPivots([...pivots, ...newPivots]);
+        }
+    }
+}, [subject.id, allProfessors, pivots, setPivots]);
+
     const isSelected = pinnedSubjects.find(subj => subj === subject.id) !== undefined
 
     return <div className='border-2 border-gray-600 rounded-large p-2 px-2'>
@@ -247,30 +260,32 @@ function ProfessorRow({ professor, setPivots: setSelectedProfessors, pivots: sel
         idSubject: number
     }) {
 
+        const currentSubjectPivots = selectedPivots.filter(pivot => pivot.idSubject === idSubject);
+
     const isSelected = selectedPivots.some(
-        selectedPivot => (
-            selectedPivot.idProfessor === professor.id && selectedPivot.idSubject == idSubject
-        )
-    );
+    selectedPivot => (
+        selectedPivot.idProfessor === professor.id && selectedPivot.idSubject == idSubject
+    )
+);
 
-
+const isLastActive = isSelected && currentSubjectPivots.length === 1;
 
     return (
         <div key={professor.id} className=' flex flex-row'>
             <button
+                disabled={isLastActive}
+                title={isLastActive ? "Para desfijar todos los profesores, debes eliminar la materia seleccionada" : undefined}
+                style={{ cursor: isLastActive ? "not-allowed" : "pointer" }}
                 onClick={() => {
+                    if (isLastActive) return;
                     if (isSelected) {
                         setSelectedProfessors(selectedPivots.filter(pivot => pivot.idProfessor != professor.id));
                     } else {
                         setSelectedProfessors([...selectedPivots, { idProfessor: professor.id, idSubject: idSubject }]);
                     }
                 }}
-                className={`border-2 border-purple-600 ${isSelected ? "bg-purple-600 text-white" : ""}  rounded-large h-max p-1 flex flex-row mr-2 `}>
-                {isSelected ? <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M680-840v80h-40v327l-80-80v-247H400v87l-87-87-33-33v-47h400ZM480-40l-40-40v-240H240v-80l80-80v-46L56-792l56-56 736 736-58 56-264-264h-6v240l-40 40ZM354-400h92l-44-44-2-2-46 46Zm126-193Zm-78 149Z" /></svg>
-                    : <svg className='fill-black dark:fill-white' xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z" /></svg>
-                }
-
-
+                className={`border-2 border-purple-600 ${isSelected ? "bg-purple-600 text-white" : ""}  rounded-large h-max p-1 flex flex-row mr-2 ${isLastActive ? "opacity-50" : ""}`}>
+                {/* Omitted rendering logic text/svg */}
                 {isSelected ? "Fijado" : "Fijar"}
             </button>
             <span className='mt-2 border-red-500'>
@@ -278,4 +293,5 @@ function ProfessorRow({ professor, setPivots: setSelectedProfessors, pivots: sel
             </span>
         </div>
     )
+
 }

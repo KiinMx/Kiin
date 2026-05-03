@@ -1,5 +1,6 @@
 import SubjectsView from '@/app/widgets/SubjectsView';
 import type Pivot from '@/domain/entities/Pivot';
+import { Subject } from '@/domain/entities/Subject';
 import SubjectCategory from '@/domain/entities/SubjectCategory';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -16,38 +17,25 @@ jest.mock('@/infrastructure/datasource/ProfessorsCsvDataSource', () => ({
   })),
 }));
 
-interface MockSubject {
-  id: number;
-  name: string;
-  type: string;
-  credits: number;
-  semestre: number[];
-  degreeResume: string;
-  professors: number[];
-}
+const defaultSubject: Subject = (() => {
+  const s = new Subject(101, 'Materia 101', 'Ingeniería', 'Modelo 21', 'Teórica', [1], 3);
+  s.professors = [201, 202];
+  return s;
+})();
 
-const defaultSubject: MockSubject = {
-  id: 101,
-  name: 'Materia 101',
-  type: 'Teórica',
-  credits: 3,
-  semestre: [1],
-  degreeResume: 'Ingeniería',
-  professors: [201, 202],
-};
+const lastProfessorSubject: Subject = (() => {
+  const s = new Subject(101, 'Materia 101', 'Ingeniería', 'Modelo 21', 'Teórica', [1], 3);
+  s.professors = [201];
+  return s;
+})();
 
-const lastProfessorSubject: MockSubject = {
-  ...defaultSubject,
-  professors: [201],
-};
-
-function createSelectedCategory(subject: MockSubject) {
-  const category = new SubjectCategory(1, [subject as any]);
+function createSelectedCategory(subject: Subject) {
+  const category = new SubjectCategory(1, [subject]);
   category.onClick(subject.id);
   return category;
 }
 
-function renderSubjectsView(initialPivots: Pivot[], subject: MockSubject = defaultSubject) {
+function renderSubjectsView(initialPivots: Pivot[], subject: Subject = defaultSubject) {
   function SubjectsViewTestWrapper() {
     const [pivots, setPivots] = useState<Pivot[]>(initialPivots);
     const [pinnedSubjects, setPinnedSubjects] = useState<number[]>([]);

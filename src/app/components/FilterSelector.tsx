@@ -81,7 +81,7 @@ const FilterSelector: React.FC<FilterSelectorProps> = ({ categories, onClick }) 
                 Selecciona tu Plan de Estudios primero
             </span>}
 
-            // 4. Integración en el JSX (al final del return)
+            {/* // 4. Integración en el JSX (al final del return) */}
             {showAlert && (
                 <ConfirmationModal 
                     title="¿Cambiar de carrera?"

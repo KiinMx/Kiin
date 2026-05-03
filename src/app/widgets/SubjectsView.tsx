@@ -152,17 +152,17 @@ function SubjectCard({ subject, allProfessors, pivots, setPivots, pinnedSubjects
     const [showProfessors, setShowProfessors] = useState(true);
 
     useEffect(() => {
-    const hasPivots = pivots.some(p => p.idSubject === subject.id);
-    if (!hasPivots && allProfessors.length > 0) {
-        const newPivots = allProfessors
-            .filter(prof => subject.professors.includes(prof.id))
-            .map(prof => ({ idProfessor: prof.id, idSubject: subject.id }));
+        const hasPivots = pivots.some(p => p.idSubject === subject.id);
+        if (!hasPivots && allProfessors.length > 0) {
+            const newPivots = allProfessors
+                .filter(prof => subject.professors.includes(prof.id))
+                .map(prof => ({ idProfessor: prof.id, idSubject: subject.id }));
 
-        if (newPivots.length > 0) {
-            setPivots([...pivots, ...newPivots]);
+            if (newPivots.length > 0) {
+                setPivots([...pivots, ...newPivots]);
+            }
         }
-    }
-}, [subject.id, allProfessors, pivots, setPivots]);
+    }, [subject.id, subject.professors, allProfessors, pivots, setPivots]);
 
     const isSelected = pinnedSubjects.find(subj => subj === subject.id) !== undefined
 
@@ -260,15 +260,15 @@ function ProfessorRow({ professor, setPivots: setSelectedProfessors, pivots: sel
         idSubject: number
     }) {
 
-        const currentSubjectPivots = selectedPivots.filter(pivot => pivot.idSubject === idSubject);
+    const currentSubjectPivots = selectedPivots.filter(pivot => pivot.idSubject === idSubject);
 
     const isSelected = selectedPivots.some(
-    selectedPivot => (
-        selectedPivot.idProfessor === professor.id && selectedPivot.idSubject == idSubject
-    )
-);
+        selectedPivot => (
+            selectedPivot.idProfessor === professor.id && selectedPivot.idSubject == idSubject
+        )
+    );
 
-const isLastActive = isSelected && currentSubjectPivots.length === 1;
+    const isLastActive = isSelected && currentSubjectPivots.length === 1;
 
     return (
         <div key={professor.id} className=' flex flex-row'>

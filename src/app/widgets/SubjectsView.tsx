@@ -4,7 +4,7 @@ import { Subject } from '@/domain/entities/Subject';
 import SubjectCategory from '@/domain/entities/SubjectCategory';
 import { ProfessorsCsvDataSource } from '@/infrastructure/datasource/ProfessorsCsvDataSource';
 import { useEffect, useState } from 'react';
-import Pivot from '../../domain/entities/Pivot';
+import { Pivot } from '../../domain/entities/Pivot';
 import FilterSelector from '../components/FilterSelector';
 import SideBar from '../components/SideBar';
 
@@ -152,11 +152,11 @@ function SubjectCard({ subject, allProfessors, pivots, setPivots, pinnedSubjects
     const [showProfessors, setShowProfessors] = useState(true);
 
     useEffect(() => {
-        const hasPivots = pivots.some(p => p.idSubject === subject.id);
-        if (!hasPivots && allProfessors.length > 0) {
-            const newPivots = allProfessors
-                .filter(prof => subject.professors.includes(prof.id))
-                .map(prof => ({ idProfessor: prof.id, idSubject: subject.id }));
+    const hasPivots = pivots.some(p => p.idSubject === subject.id);
+    if (!hasPivots && allProfessors.length > 0) {
+        const newPivots = allProfessors
+            .filter(prof => subject.professors.includes(prof.id))
+            .map(prof => Pivot.create(subject.id, prof.id));
 
             if (newPivots.length > 0) {
                 setPivots([...pivots, ...newPivots]);
@@ -281,9 +281,9 @@ function ProfessorRow({ professor, setPivots: setSelectedProfessors, pivots: sel
                     if (isSelected) {
                         setSelectedProfessors(selectedPivots.filter(pivot => pivot.idProfessor != professor.id));
                     } else {
-                        setSelectedProfessors([...selectedPivots, { idProfessor: professor.id, idSubject: idSubject }]);
-                    }
-                }}
+                        setSelectedProfessors([...selectedPivots, Pivot.create(idSubject, professor.id)]);
+                        }
+                    }}
                 className={`border-2 border-purple-600 ${isSelected ? "bg-purple-600 text-white" : ""}  rounded-large h-max p-1 flex flex-row mr-2 ${isLastActive ? "opacity-50" : ""}`}>
                 {/* Omitted rendering logic text/svg */}
                 {isSelected ? "Fijado" : "Fijar"}

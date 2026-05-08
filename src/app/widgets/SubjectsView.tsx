@@ -156,7 +156,7 @@ function SubjectCard({ subject, allProfessors, pivots, setPivots, pinnedSubjects
         if (!hasPivots && allProfessors.length > 0) {
             const newPivots = allProfessors
                 .filter(prof => subject.professors.includes(prof.id))
-                .map(prof => ({ idProfessor: prof.id, idSubject: subject.id }));
+                .map(prof => Pivot.create(subject.id, prof.id));
 
             if (newPivots.length > 0) {
                 setPivots([...pivots, ...newPivots]);
@@ -281,7 +281,7 @@ function ProfessorRow({ professor, setPivots: setSelectedProfessors, pivots: sel
                     if (isSelected) {
                         setSelectedProfessors(selectedPivots.filter(pivot => pivot.idProfessor != professor.id));
                     } else {
-                        setSelectedProfessors([...selectedPivots, { idProfessor: professor.id, idSubject: idSubject }]);
+                        setSelectedProfessors([...selectedPivots, Pivot.create(idSubject, professor.id)]);
                     }
                 }}
                 className={`border-2 border-purple-600 ${isSelected ? "bg-purple-600 text-white" : ""}  rounded-large h-max p-1 flex flex-row mr-2 ${isLastActive ? "opacity-50" : ""}`}>

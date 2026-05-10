@@ -16,7 +16,7 @@ import { DegreesCsvDataSource } from '@/infrastructure/datasource/DegreesCsvData
 import { FilterImpl } from '@/infrastructure/datasource/FilterImpl';
 import { SubjectsCsvDataSource } from '@/infrastructure/datasource/SubjectsCSvDataSource';
 import React, { useCallback, useEffect, useState } from 'react';
-import Pivot from "../../domain/entities/Pivot";
+import { Pivot } from "../../domain/entities/Pivot";
 import CurrentSchedule from "../widgets/CurrentSchedule";
 
 

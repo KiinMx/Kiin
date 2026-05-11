@@ -1,5 +1,5 @@
 import SubjectsView from '@/app/widgets/SubjectsView';
-import type Pivot from '@/domain/entities/Pivot';
+import { Pivot } from '@/domain/entities/Pivot';
 import { Subject } from '@/domain/entities/Subject';
 import SubjectCategory from '@/domain/entities/SubjectCategory';
 import '@testing-library/jest-dom';
@@ -82,7 +82,7 @@ describe('Comportamiento de sincronización y selección de profesores', () => {
 
   test('Caso 2: Duplicar pivotes (CP-002)', async () => {
     // Preparación: renderizamos con un pivote existente para la materia 101 y profesor 201.
-    renderSubjectsView([{ idSubject: 101, idProfessor: 201 }]);
+    renderSubjectsView([Pivot.create(101, 201)]);
 
     // Ejecución: esperamos a que se carguen los profesores y se procese el useEffect.
     await screen.findByText('Profesor Dos');
@@ -95,8 +95,8 @@ describe('Comportamiento de sincronización y selección de profesores', () => {
   test('Caso 3: Deselección profesor (CP-003)', async () => {
     // Preparación: renderizamos con dos pivotes activos en la materia 101.
     renderSubjectsView([
-      { idSubject: 101, idProfessor: 201 },
-      { idSubject: 101, idProfessor: 202 },
+      Pivot.create(101, 201),
+      Pivot.create(101, 202),
     ]);
 
     // Ejecución: esperamos los profesores y deseleccionamos al profesor 202.
@@ -111,7 +111,7 @@ describe('Comportamiento de sincronización y selección de profesores', () => {
 
   test('Caso 4: Bloquear último profesor (CP-004)', async () => {
     // Preparación: renderizamos la materia con un solo profesor activo.
-    renderSubjectsView([{ idSubject: 101, idProfessor: 201 }], lastProfessorSubject);
+    renderSubjectsView([Pivot.create(101, 201)], lastProfessorSubject);
 
     // Ejecución: esperamos la carga del profesor y revisamos el estado del botón.
     await screen.findByText('Profesor Uno');

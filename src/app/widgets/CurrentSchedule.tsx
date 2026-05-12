@@ -2,7 +2,7 @@ import { Course } from '@/domain/entities/Course';
 import { Schedule } from '@/domain/entities/Schedule';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useEffect, useRef, useState } from 'react';
-import Pivot from '../../domain/entities/Pivot';
+import { Pivot } from '../../domain/entities/Pivot';
 import GoogleCalendarButton from '../components/GoogleCalendarButton';
 import ICSButton from '../components/ICSButton';
 

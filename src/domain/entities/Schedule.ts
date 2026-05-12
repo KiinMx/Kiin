@@ -1,4 +1,5 @@
 import { Course } from "./Course";
+import { Pivot } from "./Pivot";
 import { Professor } from "./Professor";
 import { Subject } from "./Subject";
 
@@ -75,4 +76,59 @@ export class Schedule {
             this._professors.add(course.professor);
         }
     }
+
+
+    public hasAllPinnedSubjects(pinnedSubjectIds: number[]): boolean {
+
+    if (pinnedSubjectIds.length === 0) return true;
+
+    return pinnedSubjectIds.every(subjectId =>
+
+        this._courses.some(course => course.subject.id === subjectId)
+
+    );
+
+}
+
+public hasPivots(pivots: Pivot[]): boolean {
+
+    if (pivots.length === 0) return true;
+
+    const pivotsBySubject = new Map<number, number[]>();
+
+    for (const pivot of pivots) {
+
+        const existing = pivotsBySubject.get(pivot.idSubject) ?? [];
+
+        existing.push(pivot.idProfessor);
+
+        pivotsBySubject.set(pivot.idSubject, existing);
+
+    }
+
+    for (const [subjectId, professorIds] of pivotsBySubject) {
+
+        const courseForSubject = this._courses.find(
+
+            course => course.subject.id === subjectId
+
+        );
+
+        if (courseForSubject && !professorIds.includes(courseForSubject.professor.id)) {
+
+            return false;
+
+        }
+
+    }
+
+    return true;
+
+}
+
+
+    
+
+
+
 }

@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Variables de entorno para Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 
 // Flag para determinar si estamos en modo desarrollo sin credenciales
 export const isDevMode = !supabaseUrl || !supabaseAnonKey;

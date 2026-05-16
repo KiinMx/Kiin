@@ -1,0 +1,405 @@
+diff --git a/src/app/components/GoogleCalendarButton.tsx b/src/app/components/GoogleCalendarButton.tsx
+index e0cc03f..e42bf54 100644
+--- a/src/app/components/GoogleCalendarButton.tsx
++++ b/src/app/components/GoogleCalendarButton.tsx
+@@ -1,49 +1,24 @@
+ import { isDevMode } from '@/utils/supabaseClient';
+-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
++import { useSession } from '@supabase/auth-helpers-react';
+ import Image from 'next/image';
+-import { useEffect, useRef, useState } from 'react';
++import { useState } from 'react';
+ import Swal from 'sweetalert2';
+ import type { Schedule } from '../../domain/entities/Schedule';
++import { Pivot } from '@/domain/entities/Pivot';
++import { useGoogleAuth } from '@/app/hooks/useGoogleAuth';
++
+ interface GoogleCalendarButtonProps {
+   schedule: Schedule;
+   recurrenceStart: Date;
+   recurrenceEnd: Date;
++  pivots?: Pivot[];
++  pinnedSubjects?: number[];
+ }
+ 
+-export default function GoogleCalendarButton({ schedule, recurrenceStart, recurrenceEnd }: GoogleCalendarButtonProps) {
++export default function GoogleCalendarButton({ schedule, recurrenceStart, recurrenceEnd, pivots, pinnedSubjects }: GoogleCalendarButtonProps) {
+   const session = useSession();
+-  const supabase = useSupabaseClient();
+   const [isExporting, setIsExporting] = useState(false);
+-
+-  const popupRef = useRef<Window | null>(null);
+-
+-  async function GoogleSignIn() {
+-    const { data, error } = await supabase.auth.signInWithOAuth({
+-      provider: 'google',
+-      options: {
+-        scopes: 'https://www.googleapis.com/auth/calendar',
+-        redirectTo: window.location.href,
+-        skipBrowserRedirect: true,
+-      }
+-    });
+-
+-    if (error) {
+-      console.error('Error signing in:', error.message);
+-      alert('Error signing in: ' + error.message);
+-      return;
+-    }
+-
+-    if (data?.url) {
+-      popupRef.current = window.open(data.url, 'oauthPopup', 'width=600,height=700');
+-    }
+-  }
+-
+-  useEffect(() => {
+-    if (session && popupRef.current && !popupRef.current.closed) {
+-      popupRef.current.close();
+-      popupRef.current = null;
+-    }
+-  }, [session]);
++  const { signInWithGoogle } = useGoogleAuth();
+ 
+   function getNextDateOfDay(startDate: Date, dayOfWeek: string): Date {
+     const daysMap: Record<string, number> = {
+@@ -115,28 +90,14 @@ export default function GoogleCalendarButton({ schedule, recurrenceStart, recurr
+     setIsExporting(true);
+ 
+     try {
+-      if (!session) {
+-        const { error } = await supabase.auth.signInWithOAuth({
+-          provider: 'google',
+-          options: {
+-            scopes: 'https://www.googleapis.com/auth/calendar'
+-          }
+-        });
+-        if (error) {
+-          alert('Error al iniciar sesión con Google: ' + error.message);
+-          return;
+-        }
+-        return;
+-      }
+-
+       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       // @ts-expect-error
+-      const providerToken = session.provider_token || (session.user && session.user.provider_token);
++      const providerToken = session?.provider_token || (session?.user && session.user.provider_token);
+       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       // @ts-expect-error
+-      const accessToken = providerToken || (session.user && session.user.identities && session.user.identities[0]?.access_token);
++      const accessToken = providerToken || (session?.user && session.user.identities && session.user.identities[0]?.access_token);
+ 
+-      if (!accessToken) {
++      if (!session || !accessToken) {
+         const Swal = (await import('sweetalert2')).default;
+         await Swal.fire({
+           icon: 'info',
+@@ -144,7 +105,12 @@ export default function GoogleCalendarButton({ schedule, recurrenceStart, recurr
+           text: 'Debes iniciar sesión con Google para exportar tu horario.',
+           confirmButtonText: 'Iniciar sesión'
+         });
+-        await GoogleSignIn();
++        await signInWithGoogle({
++          ids: schedule.courses.map(c => c.id),
++          pivots: pivots ?? [],
++          pinnedSubjects: pinnedSubjects ?? [],
++          selectedSubjectIds: [...new Set(schedule.courses.map(c => c.subject.id))]
++        });
+         return;
+       }
+ 
+diff --git a/src/app/generador/page.tsx b/src/app/generador/page.tsx
+index 5b25136..87af0b5 100644
+--- a/src/app/generador/page.tsx
++++ b/src/app/generador/page.tsx
+@@ -1,20 +1,25 @@
+ "use client";
+ 
+ import { useScheduleGenerator } from "@/app/hooks/useScheduleGenerator";
++import { ScheduleState } from "@/app/hooks/useGoogleAuth";
++import SubjectCategory from "@/domain/entities/SubjectCategory";
+ import SchedulesView from "../widgets/SchedulesView";
+ import SubjectsView from "../widgets/SubjectsView";
+ import CurrentSchedule from "../widgets/CurrentSchedule";
+-import { useState, useEffect } from "react";
++import { useState, useEffect, useRef } from "react";
+ 
+ const GeneratorPage = () => {
+     const [indexSelected, setIndexSelected] = useState(0);
+     const [isSideBarOpen, setIsSideBarOpen] = useState(false);
+     const [dayFormat, setDayFormat] = useState<"short" | "long">("long");
+     const [showConflicts, setShowConflicts] = useState(false);
++    const [pendingRestore, setPendingRestore] = useState<ScheduleState | null>(null);
++    const restoredPageRef = useRef<number | null>(null);
+ 
+     const {
+         schedulesToShow,
+         currentCategories,
++        setCurrentCategories,
+         pivots,
+         setPivots,
+         pinnedSubjects,
+@@ -26,7 +31,8 @@ const GeneratorPage = () => {
+         defaultSubjectsCount,
+         setSelectedSubjectsCount,
+         page,
+-        setPage
++        setPage,
++        generateSchedules
+     } = useScheduleGenerator();
+ 
+     useEffect(() => {
+@@ -38,6 +44,65 @@ const GeneratorPage = () => {
+         return () => window.removeEventListener("resize", handleResize);
+     }, []);
+ 
++    // Leer localStorage al montar (post-OAuth redirect)
++    useEffect(() => {
++        const raw = localStorage.getItem('schedule_state_before_oauth');
++        if (!raw) return;
++
++        try {
++            const state: ScheduleState = JSON.parse(raw);
++            setPendingRestore(state);
++            localStorage.removeItem('schedule_state_before_oauth');
++        } catch (e) {
++            console.error('Failed to parse schedule state', e);
++        }
++    }, []);
++
++    // Restaurar categorías, pivots y pinned cuando currentCategories ya esté cargado
++    useEffect(() => {
++        if (!pendingRestore || currentCategories.length === 0) return;
++
++        const state = pendingRestore;
++
++        // Marcar materias seleccionadas en las categorías existentes
++        const newCategories = currentCategories.map(cat => {
++            if (cat instanceof SubjectCategory && state.selectedSubjectIds) {
++                state.selectedSubjectIds.forEach(id => {
++                    if (cat.values.some(v => v.id === id)) {
++                        cat.onClick(id);
++                    }
++                });
++            }
++            return cat;
++        });
++
++        setCurrentCategories(newCategories);
++        setPivots(state.pivots ?? []);
++        setPinnedSubjects(state.pinnedSubjects ?? []);
++
++        // Generar horarios con el estado restaurado
++        generateSchedules(newCategories);
++
++        // Guardar page para aplicar después de que los horarios se generen
++        if (typeof state.page === 'number') {
++            restoredPageRef.current = state.page;
++        }
++
++        setPendingRestore(null);
++    }, [pendingRestore, currentCategories, setCurrentCategories, setPivots, setPinnedSubjects, generateSchedules]);
++
++    // Aplicar page restaurado una vez que los horarios estén disponibles
++    useEffect(() => {
++        if (restoredPageRef.current === null) return;
++        if (schedulesToShow.length === 0) return;
++
++        const target = Math.min(restoredPageRef.current, schedulesToShow.length - 1);
++        if (target >= 0) {
++            setPage(target);
++        }
++        restoredPageRef.current = null;
++    }, [schedulesToShow, setPage]);
++
+     const toggleSideBar = () => setIsSideBarOpen(prev => !prev);
+     const handleSwitchView = (index: number) => setIndexSelected(index);
+ 
+diff --git a/src/app/hooks/useGoogleAuth.ts b/src/app/hooks/useGoogleAuth.ts
+new file mode 100644
+index 0000000..b0830c9
+--- /dev/null
++++ b/src/app/hooks/useGoogleAuth.ts
+@@ -0,0 +1,38 @@
++import { useSupabaseClient } from '@supabase/auth-helpers-react';
++import { Pivot } from '@/domain/entities/Pivot';
++
++export interface ScheduleState {
++  ids: number[];
++  pivots: Pivot[];
++  pinnedSubjects: number[];
++  page?: number;
++  selectedSubjectIds?: number[];
++}
++
++export function useGoogleAuth() {
++  const supabase = useSupabaseClient();
++
++  const signInWithGoogle = async (scheduleState?: ScheduleState) => {
++    if (scheduleState) {
++      localStorage.setItem(
++        'schedule_state_before_oauth',
++        JSON.stringify(scheduleState)
++      );
++    }
++
++    const { error } = await supabase.auth.signInWithOAuth({
++      provider: 'google',
++      options: {
++        scopes: 'https://www.googleapis.com/auth/calendar.events.owned',
++        redirectTo: window.location.href,
++      },
++    });
++
++    if (error) {
++      console.error('OAuth redirect error:', error);
++      throw error;
++    }
++  };
++
++  return { signInWithGoogle };
++}
+diff --git a/src/app/hooks/useScheduleGenerator.ts b/src/app/hooks/useScheduleGenerator.ts
+index 225398e..942a944 100644
+--- a/src/app/hooks/useScheduleGenerator.ts
++++ b/src/app/hooks/useScheduleGenerator.ts
+@@ -24,6 +24,7 @@ interface UseScheduleGeneratorReturn {
+     generatedSchedules: Schedule[];
+     schedulesToShow: Schedule[];
+     currentCategories: Category[];
++    setCurrentCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+     pivots: Pivot[];
+     setPivots: React.Dispatch<React.SetStateAction<Pivot[]>>;
+     pinnedSubjects: number[];
+@@ -91,7 +92,6 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
+     }, [pinnedSubjects, pivots]);
+ 
+     const generateSchedules = useCallback(async (categories: Category[]) => {
+-        setPage(0);
+         showNotification("Generando horarios...");
+ 
+         const data = new CoursesCsvDatasource();
+@@ -187,6 +187,7 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
+         generatedSchedules,
+         schedulesToShow,
+         currentCategories,
++        setCurrentCategories,
+         pivots,
+         setPivots,
+         pinnedSubjects,
+diff --git a/src/app/widgets/CurrentSchedule.tsx b/src/app/widgets/CurrentSchedule.tsx
+index 4067d31..4370fe2 100644
+--- a/src/app/widgets/CurrentSchedule.tsx
++++ b/src/app/widgets/CurrentSchedule.tsx
+@@ -1,10 +1,11 @@
+ import { Course } from '@/domain/entities/Course';
+ import { Schedule } from '@/domain/entities/Schedule';
+-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
++import { useSession } from '@supabase/auth-helpers-react';
+ import { useEffect, useRef, useState } from 'react';
+ import { Pivot } from '../../domain/entities/Pivot';
+ import GoogleCalendarButton from '../components/GoogleCalendarButton';
+ import ICSButton from '../components/ICSButton';
++import { useGoogleAuth } from '@/app/hooks/useGoogleAuth';
+ 
+ type Props = {
+     schedule: Schedule;
+@@ -23,11 +24,8 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
+     const [start] = useState(new Date('2026-01-12T08:00:00'));
+     const [end] = useState(new Date('2026-05-28T09:00:00'));
+     const session = useSession();
+-    const supabase = useSupabaseClient();
++    const { signInWithGoogle } = useGoogleAuth();
+ 
+-
+-    // Referencia para el popup
+-    const popupRef = useRef<Window | null>(null);
+     const exportMenuRef = useRef<HTMLDivElement | null>(null);
+ 
+     const [internalShowConflicts, setInternalShowConflicts] = useState(false);
+@@ -38,36 +36,6 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
+     const showConflicts = externalShowConflicts !== undefined ? externalShowConflicts : internalShowConflicts;
+     const setShowConflicts = externalSetShowConflicts || setInternalShowConflicts;
+ 
+-    async function GoogleSignIn() {
+-        const { data, error } = await supabase.auth.signInWithOAuth({
+-            provider: 'google',
+-            options: {
+-                scopes: 'https://www.googleapis.com/auth/calendar',
+-                redirectTo: window.location.href,
+-                skipBrowserRedirect: true, // Importante para obtener la URL sin redirigir
+-            }
+-        });
+-
+-        if (error) {
+-            console.error('Error signing in:', error.message);
+-            alert('Error signing in: ' + error.message);
+-            return;
+-        }
+-
+-        if (data?.url) {
+-            // Abrir el flujo de Google en un popup y guardar la referencia
+-            popupRef.current = window.open(data.url, 'oauthPopup', 'width=600,height=700');
+-        }
+-    }
+-
+-    // Cerrar el popup cuando la sesión cambie (usuario autenticado)
+-    useEffect(() => {
+-        if (session && popupRef.current && !popupRef.current.closed) {
+-            popupRef.current.close();
+-            popupRef.current = null;
+-        }
+-    }, [session]);
+-
+     // Cerrar el menú de exportación al hacer clic fuera
+     useEffect(() => {
+         function handleClickOutside(event: MouseEvent) {
+@@ -142,7 +110,12 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
+                                                 });
+ 
+                                                 if (result.isConfirmed) {
+-                                                    await GoogleSignIn();
++                                                    await signInWithGoogle({
++                                                        ids: schedule.courses.map(c => c.id),
++                                                        pivots: pivots ?? [],
++                                                        pinnedSubjects: pinnedSubjects ?? [],
++                                                        selectedSubjectIds: [...new Set(schedule.courses.map(c => c.subject.id))]
++                                                    });
+                                                 }
+                                             }}
+                                             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+@@ -161,6 +134,8 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
+                                                 schedule={schedule}
+                                                 recurrenceStart={start}
+                                                 recurrenceEnd={end}
++                                                pivots={pivots}
++                                                pinnedSubjects={pinnedSubjects}
+                                             />
+                                         </div>
+                                     ) : (
+@@ -179,7 +154,12 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
+                                                 });
+ 
+                                                 if (result.isConfirmed) {
+-                                                    await GoogleSignIn();
++                                                    await signInWithGoogle({
++                                                        ids: schedule.courses.map(c => c.id),
++                                                        pivots: pivots ?? [],
++                                                        pinnedSubjects: pinnedSubjects ?? [],
++                                                        selectedSubjectIds: [...new Set(schedule.courses.map(c => c.subject.id))]
++                                                    });
+                                                 }
+                                             }}
+                                             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
+diff --git a/src/utils/supabaseClient.ts b/src/utils/supabaseClient.ts
+index dc3cd2e..884ab27 100644
+--- a/src/utils/supabaseClient.ts
++++ b/src/utils/supabaseClient.ts
+@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
+ 
+ // Variables de entorno para Supabase
+ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
++const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+ 
+ // Flag para determinar si estamos en modo desarrollo sin credenciales
+ export const isDevMode = !supabaseUrl || !supabaseAnonKey;

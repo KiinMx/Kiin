@@ -1,10 +1,11 @@
 import { Course } from '@/domain/entities/Course';
 import { Schedule } from '@/domain/entities/Schedule';
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSession } from '@supabase/auth-helpers-react';
 import { useEffect, useRef, useState } from 'react';
 import { Pivot } from '../../domain/entities/Pivot';
 import GoogleCalendarButton from '../components/GoogleCalendarButton';
 import ICSButton from '../components/ICSButton';
+import { useGoogleAuth } from '@/app/hooks/useGoogleAuth';
 
 type Props = {
     schedule: Schedule;
@@ -23,11 +24,8 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
     const [start] = useState(new Date('2026-01-12T08:00:00'));
     const [end] = useState(new Date('2026-05-28T09:00:00'));
     const session = useSession();
-    const supabase = useSupabaseClient();
+    const { signInWithGoogle } = useGoogleAuth();
 
-
-    // Referencia para el popup
-    const popupRef = useRef<Window | null>(null);
     const exportMenuRef = useRef<HTMLDivElement | null>(null);
 
     const [internalShowConflicts, setInternalShowConflicts] = useState(false);
@@ -37,36 +35,6 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
     // Usar el estado externo si está disponible, de lo contrario usar el interno
     const showConflicts = externalShowConflicts !== undefined ? externalShowConflicts : internalShowConflicts;
     const setShowConflicts = externalSetShowConflicts || setInternalShowConflicts;
-
-    async function GoogleSignIn() {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                scopes: 'https://www.googleapis.com/auth/calendar',
-                redirectTo: window.location.href,
-                skipBrowserRedirect: true, // Importante para obtener la URL sin redirigir
-            }
-        });
-
-        if (error) {
-            console.error('Error signing in:', error.message);
-            alert('Error signing in: ' + error.message);
-            return;
-        }
-
-        if (data?.url) {
-            // Abrir el flujo de Google en un popup y guardar la referencia
-            popupRef.current = window.open(data.url, 'oauthPopup', 'width=600,height=700');
-        }
-    }
-
-    // Cerrar el popup cuando la sesión cambie (usuario autenticado)
-    useEffect(() => {
-        if (session && popupRef.current && !popupRef.current.closed) {
-            popupRef.current.close();
-            popupRef.current = null;
-        }
-    }, [session]);
 
     // Cerrar el menú de exportación al hacer clic fuera
     useEffect(() => {
@@ -142,7 +110,12 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
                                                 });
 
                                                 if (result.isConfirmed) {
-                                                    await GoogleSignIn();
+                                                    await signInWithGoogle({
+                                                        ids: schedule.courses.map(c => c.id),
+                                                        pivots: pivots ?? [],
+                                                        pinnedSubjects: pinnedSubjects ?? [],
+                                                        selectedSubjectIds: [...new Set(schedule.courses.map(c => c.subject.id))]
+                                                    });
                                                 }
                                             }}
                                             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"
@@ -161,6 +134,8 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
                                                 schedule={schedule}
                                                 recurrenceStart={start}
                                                 recurrenceEnd={end}
+                                                pivots={pivots}
+                                                pinnedSubjects={pinnedSubjects}
                                             />
                                         </div>
                                     ) : (
@@ -179,7 +154,12 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
                                                 });
 
                                                 if (result.isConfirmed) {
-                                                    await GoogleSignIn();
+                                                    await signInWithGoogle({
+                                                        ids: schedule.courses.map(c => c.id),
+                                                        pivots: pivots ?? [],
+                                                        pinnedSubjects: pinnedSubjects ?? [],
+                                                        selectedSubjectIds: [...new Set(schedule.courses.map(c => c.subject.id))]
+                                                    });
                                                 }
                                             }}
                                             className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex items-center gap-2"

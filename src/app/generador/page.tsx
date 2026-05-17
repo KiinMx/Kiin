@@ -1,20 +1,25 @@
 "use client";
 
 import { useScheduleGenerator } from "@/app/hooks/useScheduleGenerator";
+import { ScheduleState } from "@/app/hooks/useGoogleAuth";
+import SubjectCategory from "@/domain/entities/SubjectCategory";
 import SchedulesView from "../widgets/SchedulesView";
 import SubjectsView from "../widgets/SubjectsView";
 import CurrentSchedule from "../widgets/CurrentSchedule";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const GeneratorPage = () => {
     const [indexSelected, setIndexSelected] = useState(0);
     const [isSideBarOpen, setIsSideBarOpen] = useState(false);
     const [dayFormat, setDayFormat] = useState<"short" | "long">("long");
     const [showConflicts, setShowConflicts] = useState(false);
+    const [pendingRestore, setPendingRestore] = useState<ScheduleState | null>(null);
+    const restoredPageRef = useRef<number | null>(null);
 
     const {
         schedulesToShow,
         currentCategories,
+        setCurrentCategories,
         pivots,
         setPivots,
         pinnedSubjects,
@@ -26,7 +31,8 @@ const GeneratorPage = () => {
         defaultSubjectsCount,
         setSelectedSubjectsCount,
         page,
-        setPage
+        setPage,
+        generateSchedules
     } = useScheduleGenerator();
 
     useEffect(() => {
@@ -37,6 +43,65 @@ const GeneratorPage = () => {
         handleResize();
         return () => window.removeEventListener("resize", handleResize);
     }, []);
+
+    // Leer localStorage al montar (post-OAuth redirect)
+    useEffect(() => {
+        const raw = localStorage.getItem('schedule_state_before_oauth');
+        if (!raw) return;
+
+        try {
+            const state: ScheduleState = JSON.parse(raw);
+            setPendingRestore(state);
+            localStorage.removeItem('schedule_state_before_oauth');
+        } catch (e) {
+            console.error('Failed to parse schedule state', e);
+        }
+    }, []);
+
+    // Restaurar categorías, pivots y pinned cuando currentCategories ya esté cargado
+    useEffect(() => {
+        if (!pendingRestore || currentCategories.length === 0) return;
+
+        const state = pendingRestore;
+
+        // Marcar materias seleccionadas en las categorías existentes
+        const newCategories = currentCategories.map(cat => {
+            if (cat instanceof SubjectCategory && state.selectedSubjectIds) {
+                state.selectedSubjectIds.forEach(id => {
+                    if (cat.values.some(v => v.id === id)) {
+                        cat.onClick(id);
+                    }
+                });
+            }
+            return cat;
+        });
+
+        setCurrentCategories(newCategories);
+        setPivots(state.pivots ?? []);
+        setPinnedSubjects(state.pinnedSubjects ?? []);
+
+        // Generar horarios con el estado restaurado
+        generateSchedules(newCategories);
+
+        // Guardar page para aplicar después de que los horarios se generen
+        if (typeof state.page === 'number') {
+            restoredPageRef.current = state.page;
+        }
+
+        setPendingRestore(null);
+    }, [pendingRestore, currentCategories, setCurrentCategories, setPivots, setPinnedSubjects, generateSchedules]);
+
+    // Aplicar page restaurado una vez que los horarios estén disponibles
+    useEffect(() => {
+        if (restoredPageRef.current === null) return;
+        if (schedulesToShow.length === 0) return;
+
+        const target = Math.min(restoredPageRef.current, schedulesToShow.length - 1);
+        if (target >= 0) {
+            setPage(target);
+        }
+        restoredPageRef.current = null;
+    }, [schedulesToShow, setPage]);
 
     const toggleSideBar = () => setIsSideBarOpen(prev => !prev);
     const handleSwitchView = (index: number) => setIndexSelected(index);

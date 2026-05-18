@@ -1,49 +1,24 @@
 import { isDevMode } from '@/utils/supabaseClient';
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useSession } from '@supabase/auth-helpers-react';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import Swal from 'sweetalert2';
 import type { Schedule } from '../../domain/entities/Schedule';
+import { Pivot } from '@/domain/entities/Pivot';
+import { useGoogleAuth } from '@/app/hooks/useGoogleAuth';
+
 interface GoogleCalendarButtonProps {
   schedule: Schedule;
   recurrenceStart: Date;
   recurrenceEnd: Date;
+  pivots?: Pivot[];
+  pinnedSubjects?: number[];
 }
 
-export default function GoogleCalendarButton({ schedule, recurrenceStart, recurrenceEnd }: GoogleCalendarButtonProps) {
+export default function GoogleCalendarButton({ schedule, recurrenceStart, recurrenceEnd, pivots, pinnedSubjects }: GoogleCalendarButtonProps) {
   const session = useSession();
-  const supabase = useSupabaseClient();
   const [isExporting, setIsExporting] = useState(false);
-
-  const popupRef = useRef<Window | null>(null);
-
-  async function GoogleSignIn() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        scopes: 'https://www.googleapis.com/auth/calendar',
-        redirectTo: window.location.href,
-        skipBrowserRedirect: true,
-      }
-    });
-
-    if (error) {
-      console.error('Error signing in:', error.message);
-      alert('Error signing in: ' + error.message);
-      return;
-    }
-
-    if (data?.url) {
-      popupRef.current = window.open(data.url, 'oauthPopup', 'width=600,height=700');
-    }
-  }
-
-  useEffect(() => {
-    if (session && popupRef.current && !popupRef.current.closed) {
-      popupRef.current.close();
-      popupRef.current = null;
-    }
-  }, [session]);
+  const { signInWithGoogle } = useGoogleAuth();
 
   function getNextDateOfDay(startDate: Date, dayOfWeek: string): Date {
     const daysMap: Record<string, number> = {
@@ -115,28 +90,14 @@ export default function GoogleCalendarButton({ schedule, recurrenceStart, recurr
     setIsExporting(true);
 
     try {
-      if (!session) {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            scopes: 'https://www.googleapis.com/auth/calendar'
-          }
-        });
-        if (error) {
-          alert('Error al iniciar sesión con Google: ' + error.message);
-          return;
-        }
-        return;
-      }
-
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
-      const providerToken = session.provider_token || (session.user && session.user.provider_token);
+      const providerToken = session?.provider_token || (session?.user && session.user.provider_token);
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-expect-error
-      const accessToken = providerToken || (session.user && session.user.identities && session.user.identities[0]?.access_token);
+      const accessToken = providerToken || (session?.user && session.user.identities && session.user.identities[0]?.access_token);
 
-      if (!accessToken) {
+      if (!session || !accessToken) {
         const Swal = (await import('sweetalert2')).default;
         await Swal.fire({
           icon: 'info',
@@ -144,7 +105,12 @@ export default function GoogleCalendarButton({ schedule, recurrenceStart, recurr
           text: 'Debes iniciar sesión con Google para exportar tu horario.',
           confirmButtonText: 'Iniciar sesión'
         });
-        await GoogleSignIn();
+        await signInWithGoogle({
+          ids: schedule.courses.map(c => c.id),
+          pivots: pivots ?? [],
+          pinnedSubjects: pinnedSubjects ?? [],
+          selectedSubjectIds: [...new Set(schedule.courses.map(c => c.subject.id))]
+        });
         return;
       }
 

@@ -24,6 +24,7 @@ interface UseScheduleGeneratorReturn {
     generatedSchedules: Schedule[];
     schedulesToShow: Schedule[];
     currentCategories: Category[];
+    setCurrentCategories: React.Dispatch<React.SetStateAction<Category[]>>;
     pivots: Pivot[];
     setPivots: React.Dispatch<React.SetStateAction<Pivot[]>>;
     pinnedSubjects: number[];
@@ -91,7 +92,6 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
     }, [pinnedSubjects, pivots]);
 
     const generateSchedules = useCallback(async (categories: Category[]) => {
-        setPage(0);
         showNotification("Generando horarios...");
 
         const data = new CoursesCsvDatasource();
@@ -187,6 +187,7 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
         generatedSchedules,
         schedulesToShow,
         currentCategories,
+        setCurrentCategories,
         pivots,
         setPivots,
         pinnedSubjects,

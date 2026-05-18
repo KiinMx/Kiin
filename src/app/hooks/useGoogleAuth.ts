@@ -23,8 +23,8 @@ export function useGoogleAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        scopes: 'https://www.googleapis.com/auth/calendar.events.owned',
-        redirectTo: window.location.href,
+        scopes: 'https://www.googleapis.com/auth/calendar.events.owned', 
+        redirectTo: `${window.location.origin}/generador`,
       },
     });
 

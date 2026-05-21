@@ -4,41 +4,35 @@ import { Mapper } from "../mappers/Mapper";
 
 export class ProfessorsCsvDataSource implements ProfessorsDataSource {
   private professors: Professor[] = [];
+  private readonly faculty: string;
+
+  constructor(faculty: string = "matematicas") {
+    this.faculty = faculty;
+  }
 
   async getAll(): Promise<Professor[]> {
     if (this.professors.length > 0) {
       return this.professors;
     }
 
-
-    const res = await fetch("/api/version");
+    const res = await fetch(`/api/version?faculty=${this.faculty}`);
     const versionDeLaAPI = await res.json();
 
-    const storedData = localStorage.getItem("professor-info-" + versionDeLaAPI);
+    const cacheKey = `professor-info-${versionDeLaAPI}`;
+    const storedData = localStorage.getItem(cacheKey);
 
     if (storedData) {
       console.log("Profesores recuperados de local storage");
-      const convertedDegrees = Mapper.toProfessors(JSON.parse(storedData));
-      const professors = convertedDegrees as Professor[];
-
-      this.professors = professors;
+      this.professors = Mapper.toProfessors(JSON.parse(storedData)) as Professor[];
     } else {
-      // Eliminar la informacion desactualizada
-    Object.keys(localStorage)
-      .filter(key => key.startsWith("professor-info-"))
-      .forEach(key => localStorage.removeItem(key));
+      Object.keys(localStorage)
+        .filter(key => key.startsWith(`professor-info-`) && key.includes(`_${this.faculty}_`))
+        .forEach(key => localStorage.removeItem(key));
+
       console.log("Profesores recuperados de la API");
-      const response = await fetch("/api/professors/all");
-
-      const convertedDegrees = Mapper.toProfessors(await response.json());
-      const professors = convertedDegrees as Professor[];
-
-      this.professors = professors;
-
-      localStorage.setItem(
-        "professor-info-" + versionDeLaAPI,
-        JSON.stringify(this.professors),
-      );
+      const response = await fetch(`/api/professors/all?faculty=${this.faculty}`);
+      this.professors = Mapper.toProfessors(await response.json()) as Professor[];
+      localStorage.setItem(cacheKey, JSON.stringify(this.professors));
     }
 
     return this.professors;

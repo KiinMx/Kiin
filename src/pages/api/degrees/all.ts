@@ -1,61 +1,58 @@
 import { Degree } from "@/domain/entities/Degree";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
+import { DEFAULT_FACULTY, getFacultyDAO } from "@/lib/data/FacultyLoaderFactory";
 import { globalInitialLoad } from "@/lib/data/initialLoad";
 import { NextApiRequest, NextApiResponse } from "next";
 
 export class Degrees {
-    private static _degrees: Degree[] = [];
+    private static _degreesByFaculty: Map<string, Degree[]> = new Map();
 
+    public static getDegreesForFaculty(faculty: string): Degree[] {
+        return Degrees._degreesByFaculty.get(faculty) ?? [];
+    }
+
+    /** @deprecated Use getDegreesForFaculty for explicit access */
     public static get degrees(): Degree[] {
-        return Degrees._degrees;
-    }
-    public static set degrees(value: Degree[]) {
-        Degrees._degrees = value;
+        return Degrees.getDegreesForFaculty(DEFAULT_FACULTY);
     }
 
-    public static async initialLoad() {
+    public static async initialLoad(faculty: string = DEFAULT_FACULTY) {
+        if (Degrees._degreesByFaculty.has(faculty)) return;
 
-        const results = await CoursesModelDao.getCourses();
+        const dao = getFacultyDAO(faculty);
+        const results = await dao.getCourses();
+        const list: Degree[] = [];
         let count = 0;
 
         for (const result of results) {
-
             const degreesResultCsv = result.PE.split("-");
-
             degreesResultCsv.forEach((degreeString) => {
-                if (this.findDegree(degreeString.trim()) === undefined) {
+                const name = degreeString.trim() === "" ? "Unknown" : degreeString.trim();
+                if (!list.find(d => d.name === name)) {
                     count++;
-                    this.degrees.push(new Degree(count, degreeString.trim() == "" ? "Unknown" : degreeString.trim()));
+                    list.push(new Degree(count, name));
                 }
             });
-
-        }
-    }
-
-    public static findDegree(degreeCourseCSV: string): Degree | undefined {
-        return this.degrees.find(
-            (degree) =>
-                degree.name === degreeCourseCSV
-        )
-    }
-
-    public static async getAll() {
-
-        if (this._degrees.length === 0) {
-            await globalInitialLoad();
         }
 
-        return this.degrees;
+        Degrees._degreesByFaculty.set(faculty, list);
     }
 
+    public static findDegree(degreeCourseCSV: string, faculty: string = DEFAULT_FACULTY): Degree | undefined {
+        return Degrees.getDegreesForFaculty(faculty).find(d => d.name === degreeCourseCSV);
+    }
 
+    public static async getAll(faculty: string = DEFAULT_FACULTY) {
+        if (!Degrees._degreesByFaculty.has(faculty)) {
+            await globalInitialLoad(faculty);
+        }
+        return Degrees.getDegreesForFaculty(faculty);
+    }
 }
 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
-    const degrees = await Degrees.getAll()
-
+    const faculty = (req.query.faculty as string) ?? DEFAULT_FACULTY;
+    const degrees = await Degrees.getAll(faculty);
     return res.status(200).json(degrees);
 }
 

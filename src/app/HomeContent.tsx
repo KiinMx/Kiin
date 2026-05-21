@@ -79,7 +79,7 @@ const HomeContent: React.FC = () => {
                 border
               
               `}
-                
+
               >
                 {displayText}
                 <span className="typewriter-cursor">
@@ -90,11 +90,23 @@ const HomeContent: React.FC = () => {
             <p className="text-lg sm:text-xl lg:text-2xl">
               De estudiantes para estudiantes
             </p>
-            <Link href={'/generador'}>
-              <button className="block py-3 px-10 bg-purple-500 hover:bg-orange-700 text-white font-bold rounded-xl transform transition-transform duration-150 active:scale-110">
-                Comenzar
-              </button>
-            </Link>
+            <div className="flex flex-col items-center lg:items-start gap-3">
+              <span className="text-sm font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                Selecciona tu facultad
+              </span>
+              <div className="flex flex-row gap-4">
+                <Link href={'/generador/matematicas'}>
+                  <button className="py-3 px-8 bg-purple-500 hover:bg-purple-700 text-white font-bold rounded-xl transform transition-transform duration-150 active:scale-110">
+                    Matemáticas
+                  </button>
+                </Link>
+                <Link href={'/generador/psicologia'}>
+                  <button className="py-3 px-8 bg-indigo-500 hover:bg-indigo-700 text-white font-bold rounded-xl transform transition-transform duration-150 active:scale-110">
+                    Psicología
+                  </button>
+                </Link>
+              </div>
+            </div>
           </div>
           <div className="mx-16 flex justify-center lg:justify-start mt-6 lg:mx-0 xl:mx-0 2xl:mx-9">
             <Image

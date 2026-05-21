@@ -1,19 +1,19 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import Category from "@/domain/entities/Category";
+import { Degree } from "@/domain/entities/Degree";
+import DegreeCategory from "@/domain/entities/DegreeCategory";
+import { PinnedSubjectFilter } from "@/domain/entities/PinnedSubjectFilter";
+import { Pivot } from "@/domain/entities/Pivot";
+import { PivotFilter } from "@/domain/entities/PivotFilter";
+import { PostGenerationFilter } from "@/domain/entities/PostGenerationFilter";
 import { Schedule } from "@/domain/entities/Schedule";
 import { ScheduleGenerator } from "@/domain/entities/ScheduleGenerator";
-import { Pivot } from "@/domain/entities/Pivot";
-import Category from "@/domain/entities/Category";
+import { Subject } from "@/domain/entities/Subject";
 import SubjectCategory from "@/domain/entities/SubjectCategory";
 import { CoursesCsvDatasource } from "@/infrastructure/datasource/CoursesCsvDatasource";
 import { DegreesCsvDataSource } from "@/infrastructure/datasource/DegreesCsvDataSource";
-import { SubjectsCsvDataSource } from "@/infrastructure/datasource/SubjectsCSvDataSource";
 import { FilterImpl } from "@/infrastructure/datasource/FilterImpl";
-import { PinnedSubjectFilter } from "@/domain/entities/PinnedSubjectFilter";
-import { PivotFilter } from "@/domain/entities/PivotFilter";
-import { PostGenerationFilter } from "@/domain/entities/PostGenerationFilter";
-import { Degree } from "@/domain/entities/Degree";
-import DegreeCategory from "@/domain/entities/DegreeCategory";
-import { Subject } from "@/domain/entities/Subject";
+import { SubjectsCsvDataSource } from "@/infrastructure/datasource/SubjectsCSvDataSource";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface NotificationState {
     message: string;
@@ -42,7 +42,7 @@ interface UseScheduleGeneratorReturn {
     setPage: React.Dispatch<React.SetStateAction<number>>;
 }
 
-export function useScheduleGenerator(): UseScheduleGeneratorReturn {
+export function useScheduleGenerator(faculty: string = "matematicas"): UseScheduleGeneratorReturn {
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentCategories, setCurrentCategories] = useState<Category[]>([]);
     const [pivots, setPivots] = useState<Pivot[]>([]);
@@ -94,7 +94,7 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
     const generateSchedules = useCallback(async (categories: Category[]) => {
         showNotification("Generando horarios...");
 
-        const data = new CoursesCsvDatasource();
+        const data = new CoursesCsvDatasource(faculty);
         const filter = new FilterImpl(categories.map(c => c.toCourseFilter()));
         const courses = await data.getCoursesByFilter(filter);
 
@@ -126,7 +126,7 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
         setDefaultSubjectsCount(maxCourses);
         setGeneratedSchedules(sorted);
         showNotification(`${sorted.length} Horarios Generados!`);
-    }, [pinnedSubjects, pivots, showNotification]);
+    }, [pinnedSubjects, pivots, showNotification, faculty]);
 
     const handleCategoryClick = useCallback((categories: Category[]) => {
         setCurrentCategories(categories);
@@ -164,13 +164,13 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
     }, [currentCategories, pivots, pinnedSubjects, generateSchedules]);
 
     const mapCategories = useCallback(async () => {
-        const degrees: Degree[] = await (new DegreesCsvDataSource()).getAll();
+        const degrees: Degree[] = await (new DegreesCsvDataSource(faculty)).getAll();
         const degreesCategory: Category = new DegreeCategory("Carrera", degrees);
-        const subjects: Subject[] = await (new SubjectsCsvDataSource()).getAll();
+        const subjects: Subject[] = await (new SubjectsCsvDataSource(faculty)).getAll();
         const semesters: SubjectCategory[] = Array(9).fill(0).map((_, index) => new SubjectCategory(index + 1, subjects));
 
         setCurrentCategories([degreesCategory, ...semesters]);
-    }, []);
+    }, [faculty]);
 
     useEffect(() => {
         mapCategories();

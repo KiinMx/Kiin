@@ -18,6 +18,7 @@ interface SubjctsViewProps {
     pinnedSubjects: number[],
     setPinnedSubjects: (pinnedSubjects: number[]) => void;
     onRemoveSubject: (categoryIndex: number, subjectId: number) => void;
+    faculty?: string;
 }
 
 
@@ -31,7 +32,8 @@ function SubjectsView({
     setPivots,
     pinnedSubjects,
     setPinnedSubjects,
-    onRemoveSubject
+    onRemoveSubject,
+    faculty = "matematicas"
 
 }: SubjctsViewProps) {
 
@@ -40,7 +42,7 @@ function SubjectsView({
     const [professorsData, setProfessorsData] = useState<Professor[]>([])
 
     const getProfessors = async () => {
-        const professorsDataSource = new ProfessorsCsvDataSource()
+        const professorsDataSource = new ProfessorsCsvDataSource(faculty)
         const professorsData = await professorsDataSource.getAll();
         setProfessorsData(professorsData)
     }
@@ -152,11 +154,11 @@ function SubjectCard({ subject, allProfessors, pivots, setPivots, pinnedSubjects
     const [showProfessors, setShowProfessors] = useState(true);
 
     useEffect(() => {
-    const hasPivots = pivots.some(p => p.idSubject === subject.id);
-    if (!hasPivots && allProfessors.length > 0) {
-        const newPivots = allProfessors
-            .filter(prof => subject.professors.includes(prof.id))
-            .map(prof => Pivot.create(subject.id, prof.id));
+        const hasPivots = pivots.some(p => p.idSubject === subject.id);
+        if (!hasPivots && allProfessors.length > 0) {
+            const newPivots = allProfessors
+                .filter(prof => subject.professors.includes(prof.id))
+                .map(prof => Pivot.create(subject.id, prof.id));
 
             if (newPivots.length > 0) {
                 setPivots([...pivots, ...newPivots]);
@@ -282,8 +284,8 @@ function ProfessorRow({ professor, setPivots: setSelectedProfessors, pivots: sel
                         setSelectedProfessors(selectedPivots.filter(pivot => pivot.idProfessor != professor.id));
                     } else {
                         setSelectedProfessors([...selectedPivots, Pivot.create(idSubject, professor.id)]);
-                        }
-                    }}
+                    }
+                }}
                 className={`border-2 border-purple-600 ${isSelected ? "bg-purple-600 text-white" : ""}  rounded-large h-max p-1 flex flex-row mr-2 ${isLastActive ? "opacity-50" : ""}`}>
                 {/* Omitted rendering logic text/svg */}
                 {isSelected ? "Fijado" : "Fijar"}

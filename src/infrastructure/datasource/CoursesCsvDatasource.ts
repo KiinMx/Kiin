@@ -7,42 +7,36 @@ import { Mapper } from "../mappers/Mapper";
 
 export class CoursesCsvDatasource implements CoursesDataSource {
   private courses: Course[] = [];
+  private readonly faculty: string;
+
+  constructor(faculty: string = "matematicas") {
+    this.faculty = faculty;
+  }
 
   async getAll(): Promise<Course[]> {
     if (this.courses.length > 0) {
       return this.courses;
     }
 
-
-    const res = await fetch("/api/version");
+    const res = await fetch(`/api/version?faculty=${this.faculty}`);
     const versionDeLaAPI = await res.json();
 
-    const storedData = localStorage.getItem("course-info-" + versionDeLaAPI);
+    const cacheKey = `course-info-${versionDeLaAPI}`;
+    const storedData = localStorage.getItem(cacheKey);
 
     if (storedData) {
       console.log("Cursos recuperados de local storage");
-      const convertedCourses = Mapper.toCourses(JSON.parse(storedData));
-      const courses = convertedCourses as Course[];
-
-      this.courses = courses;
+      this.courses = Mapper.toCourses(JSON.parse(storedData)) as Course[];
     } else {
-      // Eliminar la informacion desactualizada
+      // Eliminar la informacion desactualizada de esta facultad
       Object.keys(localStorage)
-        .filter(key => key.startsWith("course-info-"))
+        .filter(key => key.startsWith(`course-info-`) && key.includes(`_${this.faculty}_`))
         .forEach(key => localStorage.removeItem(key));
 
       console.log("Cursos recuperados de la API");
-      const response = await fetch("/api/courses/all");
-
-      const convertedCourses = Mapper.toCourses(await response.json());
-      const courses = convertedCourses as Course[];
-
-      this.courses = courses;
-
-      localStorage.setItem(
-        "course-info-" + versionDeLaAPI,
-        JSON.stringify(this.courses),
-      );
+      const response = await fetch(`/api/courses/all?faculty=${this.faculty}`);
+      this.courses = Mapper.toCourses(await response.json()) as Course[];
+      localStorage.setItem(cacheKey, JSON.stringify(this.courses));
     }
 
     return this.courses;

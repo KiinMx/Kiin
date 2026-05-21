@@ -1,6 +1,6 @@
 import { Subject } from "@/domain/entities/Subject";
 import { CourseCSV } from "@/lib/data/CourseModel";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
+import { DEFAULT_FACULTY, getFacultyDAO } from "@/lib/data/FacultyLoaderFactory";
 import { globalInitialLoad } from "@/lib/data/initialLoad";
 import { SubjectMapper } from "@/lib/data/SubjectMapper";
 import { NextApiRequest, NextApiResponse } from "next";
@@ -8,61 +8,65 @@ import { Degrees } from "../degrees/all";
 
 export class Subjects {
 
-    private static _subjects: Subject[] = [];
+    private static _subjectsByFaculty: Map<string, Subject[]> = new Map();
 
+    public static getSubjectsForFaculty(faculty: string): Subject[] {
+        return Subjects._subjectsByFaculty.get(faculty) ?? [];
+    }
+
+    /** @deprecated Use getSubjectsForFaculty for explicit access */
     public static get subjects(): Subject[] {
-        return Subjects._subjects;
-    }
-    public static set subjects(value: Subject[]) {
-        Subjects._subjects = value;
+        return Subjects.getSubjectsForFaculty(DEFAULT_FACULTY);
     }
 
-    public static async initialLoad() {
+    public static async initialLoad(faculty: string = DEFAULT_FACULTY) {
+        if (Subjects._subjectsByFaculty.has(faculty)) return;
 
-
-        const results = await CoursesModelDao.getCourses();
+        const dao = getFacultyDAO(faculty);
+        const results = await dao.getCourses();
+        const list: Subject[] = [];
         let count = 0;
 
         for (const result of results) {
-            if (this.findSubject(result) === undefined) {
+            if (Subjects._findInList(list, result) === undefined) {
                 count++;
-
-                this.subjects.push(SubjectMapper.fromModelToEntity(count, result));
+                list.push(SubjectMapper.fromModelToEntity(count, result));
 
                 const degreesString = result.PE.split("-");
-
                 degreesString.forEach((degreeString) => {
-                    const degree = Degrees.findDegree(degreeString.trim());
+                    const degree = Degrees.findDegree(degreeString.trim(), faculty);
                     if (degree) {
-                        degree.addSubject(this.subjects[count - 1]);
-                        this.subjects[count - 1].addDegree(degree.id);
+                        degree.addSubject(list[count - 1]);
+                        list[count - 1].addDegree(degree.id);
                     }
-                })
+                });
             }
         }
+
+        Subjects._subjectsByFaculty.set(faculty, list);
     }
 
-    public static findSubject(result: CourseCSV): Subject | undefined {
-        return this.subjects.find(
-            (subject) =>
-                subject.name === result.Asignatura &&
-                subject.degreeResume === result.PE
-        )
+    public static findSubject(result: CourseCSV, faculty: string = DEFAULT_FACULTY): Subject | undefined {
+        return Subjects.getSubjectsForFaculty(faculty).find(
+            (subject) => subject.name === result.Asignatura && subject.degreeResume === result.PE
+        );
     }
 
-    public static async getAll() {
+    private static _findInList(list: Subject[], result: CourseCSV): Subject | undefined {
+        return list.find(s => s.name === result.Asignatura && s.degreeResume === result.PE);
+    }
 
-        if (this._subjects.length === 0) {
-            await globalInitialLoad();
+    public static async getAll(faculty: string = DEFAULT_FACULTY) {
+        if (!Subjects._subjectsByFaculty.has(faculty)) {
+            await globalInitialLoad(faculty);
         }
-
-        return this._subjects;
+        return Subjects.getSubjectsForFaculty(faculty);
     }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
-    const subjects = await Subjects.getAll();
+    const faculty = (req.query.faculty as string) ?? DEFAULT_FACULTY;
+    const subjects = await Subjects.getAll(faculty);
     return res.status(200).json(subjects);
 }
 

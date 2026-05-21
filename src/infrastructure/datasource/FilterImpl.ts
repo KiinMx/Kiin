@@ -1,10 +1,8 @@
 import { Course } from "@/domain/entities/Course";
-import { CoursesCsvDatasource } from "./CoursesCsvDatasource";
-import { Filter } from "@/domain/entities/Filter";
-import { CoursesRepositoryImpl } from "../repositories/CoursesRepositoryImpl";
 import CourseFilter from "@/domain/entities/CourseFilter";
-import SubjectFilter from "@/domain/entities/SubjectFilter";
 import DegreeFilter from "@/domain/entities/DegreeFilter";
+import { Filter } from "@/domain/entities/Filter";
+import SubjectFilter from "@/domain/entities/SubjectFilter";
 
 export class FilterImpl implements Filter {
 
@@ -16,12 +14,8 @@ export class FilterImpl implements Filter {
   }
 
   //union filter
-  async filter(
-
-  ) {
-    const coursesDataSource = new CoursesRepositoryImpl(new CoursesCsvDatasource());
-    const allCourses: Course[] = await coursesDataSource.getAll();
-    const filtered: Course[] = allCourses.filter(course =>
+  async filter(courses: Course[]) {
+    const filtered: Course[] = courses.filter(course =>
       this._filters.every(filter => (filter instanceof DegreeFilter) ? filter.satify(course) : true)
     );
 

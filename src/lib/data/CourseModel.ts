@@ -31,4 +31,6 @@ export interface CourseCSV {
   Aula4: string,
   Viernes: string,
   Aula5: string,
+  Sabado?: string,
+  Aula6?: string,
 }

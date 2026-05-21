@@ -4,42 +4,35 @@ import { Mapper } from "../mappers/Mapper";
 
 export class SubjectsCsvDataSource implements SubjectsDatasource {
   private subjects: Subject[] = [];
+  private readonly faculty: string;
+
+  constructor(faculty: string = "matematicas") {
+    this.faculty = faculty;
+  }
 
   async getAll(): Promise<Subject[]> {
     if (this.subjects.length > 0) {
       return this.subjects;
     }
 
-
-    const res = await fetch("/api/version");
+    const res = await fetch(`/api/version?faculty=${this.faculty}`);
     const versionDeLaAPI = await res.json();
 
-    const storedData = localStorage.getItem("subject-info-" + versionDeLaAPI);
+    const cacheKey = `subject-info-${versionDeLaAPI}`;
+    const storedData = localStorage.getItem(cacheKey);
 
     if (storedData) {
       console.log("Asignaturas recuperados de local storage");
-      const convertedSubjects = Mapper.toSubjects(JSON.parse(storedData));
-      const subjects = convertedSubjects as Subject[];
-
-      this.subjects = subjects;
+      this.subjects = Mapper.toSubjects(JSON.parse(storedData)) as Subject[];
     } else {
-      // Eliminar la informacion desactualizada
       Object.keys(localStorage)
-        .filter(key => key.startsWith("subject-info-"))
+        .filter(key => key.startsWith(`subject-info-`) && key.includes(`_${this.faculty}_`))
         .forEach(key => localStorage.removeItem(key));
 
       console.log("Asignaturas recuperados de la API");
-      const response = await fetch("/api/subjects/all");
-
-      const convertedSubjects = Mapper.toSubjects(await response.json());
-      const subjects = convertedSubjects as Subject[];
-
-      this.subjects = subjects;
-
-      localStorage.setItem(
-        "subject-info-" + versionDeLaAPI,
-        JSON.stringify(this.subjects),
-      );
+      const response = await fetch(`/api/subjects/all?faculty=${this.faculty}`);
+      this.subjects = Mapper.toSubjects(await response.json()) as Subject[];
+      localStorage.setItem(cacheKey, JSON.stringify(this.subjects));
     }
 
     return this.subjects;

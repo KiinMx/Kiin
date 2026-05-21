@@ -1,5 +1,6 @@
 import { Course } from "@/domain/entities/Course";
 import { Session } from "@/domain/entities/Session";
+import { DEFAULT_FACULTY } from "@/lib/data/FacultyLoaderFactory";
 import { Professors } from "@/pages/api/professors/all";
 import { Subjects } from "@/pages/api/subjects/all";
 import moment from "moment";
@@ -7,10 +8,10 @@ import { CourseCSV } from "./CourseModel";
 
 export class CourseMapper {
 
-    public static fromModelToEntity(id: number, model: CourseCSV): Course {
+    public static fromModelToEntity(id: number, model: CourseCSV, faculty: string = DEFAULT_FACULTY): Course {
 
-        const subject = Subjects.findSubject(model);
-        const professor = Professors.findProfessor(model);
+        const subject = Subjects.findSubject(model, faculty);
+        const professor = Professors.findProfessor(model, faculty);
 
         if (!subject || !professor) {
             throw new Error("Subject or professor not found");
@@ -40,15 +41,18 @@ export class CourseMapper {
             ["Miercoles", "Aula3"],
             ["Jueves", "Aula4"],
             ["Viernes", "Aula5"],
+            ["Sabado", "Aula6"],
         ]);
 
         for (const day of days) {
-            if (!result[day[0]]) {
+            const dayValue = result[day[0]];
+            const aulaValue = result[day[1]];
+            if (!dayValue) {
                 continue;
             }
 
-            const timeSlots = result[day[0]].split(/\r?\n/).map(t => t.trim()).filter(Boolean);
-            const classrooms = result[day[1]].split(/\r?\n/).map(c => c.trim()).filter(Boolean);
+            const timeSlots = dayValue.split(/\r?\n/).map(t => t.trim()).filter(Boolean);
+            const classrooms = (aulaValue ?? "").split(/\r?\n/).map(c => c.trim()).filter(Boolean);
 
             for (let i = 0; i < timeSlots.length; i++) {
                 const hours = this.getHours(timeSlots[i]);

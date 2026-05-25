@@ -1,5 +1,5 @@
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { Pivot } from '@/domain/entities/Pivot';
+import { useSupabase } from '@/app/components/SupabaseProvider';
 
 export interface ScheduleState {
   ids: number[];
@@ -10,7 +10,7 @@ export interface ScheduleState {
 }
 
 export function useGoogleAuth() {
-  const supabase = useSupabaseClient();
+  const { supabase } = useSupabase();
 
   const signInWithGoogle = async (scheduleState?: ScheduleState) => {
     if (scheduleState) {

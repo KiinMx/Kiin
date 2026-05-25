@@ -1,5 +1,5 @@
 import { isDevMode } from '@/utils/supabaseClient';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSupabase } from '@/app/components/SupabaseProvider';
 import Image from 'next/image';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
@@ -16,7 +16,7 @@ interface GoogleCalendarButtonProps {
 }
 
 export default function GoogleCalendarButton({ schedule, recurrenceStart, recurrenceEnd, pivots, pinnedSubjects }: GoogleCalendarButtonProps) {
-  const session = useSession();
+  const { session } = useSupabase();
   const [isExporting, setIsExporting] = useState(false);
   const { signInWithGoogle } = useGoogleAuth();
 
@@ -273,7 +273,7 @@ export default function GoogleCalendarButton({ schedule, recurrenceStart, recurr
 
 
 function PerfilUsuario() {
-  const session = useSession();
+  const { session } = useSupabase();
 
   if (!session) return <p>Cargando...</p>;
 

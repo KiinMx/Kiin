@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 
 // Variables de entorno para Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -33,7 +33,7 @@ if (isDevMode && typeof window === 'undefined') {
 
 // Si no hay credenciales, crear un cliente dummy para evitar errores
 const supabase = isDevMode
-  ? createClient('https://placeholder.supabase.co', 'placeholder-key')
-  : createClient(supabaseUrl, supabaseAnonKey);
+  ? createBrowserClient('https://placeholder.supabase.co', 'placeholder-key')
+  : createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 export default supabase;

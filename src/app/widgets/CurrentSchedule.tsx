@@ -1,6 +1,6 @@
 import { Course } from '@/domain/entities/Course';
 import { Schedule } from '@/domain/entities/Schedule';
-import { useSession } from '@supabase/auth-helpers-react';
+import { useSupabase } from '@/app/components/SupabaseProvider';
 import { useEffect, useRef, useState } from 'react';
 import { Pivot } from '../../domain/entities/Pivot';
 import GoogleCalendarButton from '../components/GoogleCalendarButton';
@@ -23,7 +23,7 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
     //Prueba de google
     const [start] = useState(new Date('2026-01-12T08:00:00'));
     const [end] = useState(new Date('2026-05-28T09:00:00'));
-    const session = useSession();
+    const { session } = useSupabase();
     const { signInWithGoogle } = useGoogleAuth();
 
     const exportMenuRef = useRef<HTMLDivElement | null>(null);

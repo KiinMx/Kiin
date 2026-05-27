@@ -1,7 +1,5 @@
-import { CatalogSnapshotDto } from "@/application/dtos/CatalogSnapshotDto";
-import { School } from "@/domain/entities/School";
+import { AcademicOfferDto } from "@/application/dtos/AcademicOfferDto";
 
 export interface SchoolDataAdapter {
-  getSchool(): School;
-  fetchCatalog(): Promise<CatalogSnapshotDto>;
+  fetchCatalog(): Promise<AcademicOfferDto>;
 }

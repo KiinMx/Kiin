@@ -66,7 +66,6 @@ X-WR-CALDESC:Horario generado desde Kiin
 
                 // Format dates for ICS (YYYYMMDDTHHMMSS)
                 const formatDateTime = (date: Date): string => {
-                    console.log("datetete:", date);
                     return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                 };
 

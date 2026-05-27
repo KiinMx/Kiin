@@ -1,10 +1,13 @@
+import "@/infrastructure/register";
 import { LoadCatalogUseCase } from "@/domain/use_cases/LoadCatalogUseCase";
-import { CatalogRepositoryImpl } from "@/infrastructure/repositories/CatalogRepositoryImpl";
+import { container } from "@/infrastructure/container";
+import { SchoolDataAdapter } from "@/application/ports/SchoolDataAdapter";
 import { catalogState } from "@/infrastructure/state/catalogState";
 
 export async function globalInitialLoad(schoolSlug: string) {
-  const loadCatalogUseCase = new LoadCatalogUseCase(new CatalogRepositoryImpl());
-  const snapshot = await loadCatalogUseCase.execute(schoolSlug);
+  const adapter = container.resolve<SchoolDataAdapter>("SchoolDataAdapter", schoolSlug);
+  const loadCatalogUseCase = new LoadCatalogUseCase(adapter);
+  const snapshot = await loadCatalogUseCase.execute();
 
   catalogState.schoolSlug = schoolSlug;
   catalogState.degrees = snapshot.degrees;

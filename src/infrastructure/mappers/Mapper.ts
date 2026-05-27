@@ -20,7 +20,6 @@ export class Mapper {
         );
 
 
-        console.log(json)
         subject.courses = json._coursesIds
         subject.degrees = json._degreesIds
         subject.professors = json._professorsIds

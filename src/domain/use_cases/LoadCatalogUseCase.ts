@@ -1,10 +1,10 @@
-import { CatalogSnapshotDto } from "@/application/dtos/CatalogSnapshotDto";
-import { CatalogRepository } from "@/domain/repositories/CatalogRepository";
+import { AcademicOfferDto } from "@/application/dtos/AcademicOfferDto";
+import { SchoolDataAdapter } from "@/application/ports/SchoolDataAdapter";
 
 export class LoadCatalogUseCase {
-  constructor(private readonly catalogRepository: CatalogRepository) {}
+  constructor(private readonly adapter: SchoolDataAdapter) {}
 
-  async execute(schoolSlug: string): Promise<CatalogSnapshotDto> {
-    return this.catalogRepository.loadCatalog(schoolSlug);
+  async execute(): Promise<AcademicOfferDto> {
+    return this.adapter.fetchCatalog();
   }
 }

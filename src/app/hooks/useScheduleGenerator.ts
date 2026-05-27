@@ -7,7 +7,10 @@ import { School } from "@/domain/entities/School";
 import { Schedule } from "@/domain/entities/Schedule";
 import { Subject } from "@/domain/entities/Subject";
 import { ScheduleUseCase } from "@/domain/use_cases/ScheduleUseCase";
-import CatalogClientImpl from "@/infrastructure/datasource/CatalogClientImpl";
+import { AcademicOfferRepository } from "@/domain/repositories/AcademicOfferRepository";
+import { LocalAcademicOfferRepository } from "@/infrastructure/repositories/LocalAcademicOfferRepository";
+import { RemoteAcademicOfferRepository } from "@/infrastructure/repositories/RemoteAcademicOfferRepository";
+import { container } from "@/infrastructure/container";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface NotificationState {
@@ -41,6 +44,18 @@ interface UseScheduleGeneratorReturn {
 export function useScheduleGenerator(schoolSlug: string): UseScheduleGeneratorReturn {
     const scheduleUseCase = useMemo(() => new ScheduleUseCase(), []);
     const school = useMemo(() => School.fromSlug(schoolSlug), [schoolSlug]);
+
+    const repository = useMemo(() => {
+        const key = `AcademicOfferRepository:${schoolSlug}`;
+        container.register(key, () =>
+            new LocalAcademicOfferRepository(
+                new RemoteAcademicOfferRepository(schoolSlug),
+                schoolSlug
+            )
+        );
+        return container.resolve<AcademicOfferRepository>(key);
+    }, [schoolSlug]);
+
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentCategories, setCurrentCategories] = useState<Category[]>([]);
     const [pivots, setPivots] = useState<Pivot[]>([]);
@@ -72,8 +87,7 @@ export function useScheduleGenerator(schoolSlug: string): UseScheduleGeneratorRe
     const generateSchedules = useCallback(async (categories: Category[]) => {
         showNotification("Generando horarios...");
 
-        const client = new CatalogClientImpl();
-        const allCourses = await client.getCourses();
+        const allCourses = await repository.getCourses();
 
         const courseFilters: CourseFilter[] = categories.map(c => c.toCourseFilter());
         const filteredCourses = allCourses.filter(course =>
@@ -92,7 +106,7 @@ export function useScheduleGenerator(schoolSlug: string): UseScheduleGeneratorRe
         setDefaultSubjectsCount(result.maxCourses);
         setGeneratedSchedules(result.schedules);
         showNotification(`${result.schedules.length} Horarios Generados!`);
-    }, [pinnedSubjects, pivots, scheduleUseCase, showNotification]);
+    }, [pinnedSubjects, pivots, scheduleUseCase, showNotification, repository]);
 
     const handleCategoryClick = useCallback((categories: Category[]) => {
         setCurrentCategories(categories);
@@ -123,11 +137,10 @@ export function useScheduleGenerator(schoolSlug: string): UseScheduleGeneratorRe
 
     const mapCategories = useCallback(async () => {
         if (!school) return;
-        const client = new CatalogClientImpl();
-        const degrees: Degree[] = await client.getDegrees();
-        const subjects: Subject[] = await client.getSubjects();
+        const degrees: Degree[] = await repository.getDegrees();
+        const subjects: Subject[] = await repository.getSubjects();
         setCurrentCategories(scheduleUseCase.buildInitialCategories(degrees, subjects));
-    }, [scheduleUseCase, school]);
+    }, [scheduleUseCase, school, repository]);
 
     useEffect(() => {
         mapCategories();

@@ -3,7 +3,7 @@ import { Degree } from "@/domain/entities/Degree";
 import { Professor } from "@/domain/entities/Professor";
 import { Subject } from "@/domain/entities/Subject";
 
-export interface CatalogSnapshotDto {
+export interface AcademicOfferDto {
   degrees: Degree[];
   subjects: Subject[];
   professors: Professor[];

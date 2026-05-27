@@ -5,7 +5,8 @@ import Calendar from '@/app/components/Calendar';
 import CurrentSchedule from '@/app/widgets/CurrentSchedule';
 import { Course } from '@/domain/entities/Course';
 import { Schedule } from '@/domain/entities/Schedule';
-import { CoursesCsvDatasource } from '@/infrastructure/datasource/CoursesCsvDatasource';
+import { LocalAcademicOfferRepository } from '@/infrastructure/repositories/LocalAcademicOfferRepository';
+import { RemoteAcademicOfferRepository } from '@/infrastructure/repositories/RemoteAcademicOfferRepository';
 import { useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
@@ -32,7 +33,11 @@ export default function HorarioClient() {
   }, []);
 
   React.useEffect(() => {
-    (new CoursesCsvDatasource()).getAll().then(courses => {
+    const repo = new LocalAcademicOfferRepository(
+      new RemoteAcademicOfferRepository("fmat"),
+      "fmat"
+    );
+    repo.getCourses().then(courses => {
       const filteredCourses = courses.filter(course => ids.includes(course.id));
       setCourses(filteredCourses);
     }).catch(error => {

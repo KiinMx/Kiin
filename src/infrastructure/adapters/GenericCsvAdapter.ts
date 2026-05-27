@@ -1,5 +1,5 @@
 import { SchoolDataAdapter } from "@/application/ports/SchoolDataAdapter";
-import { CatalogSnapshotDto } from "@/application/dtos/CatalogSnapshotDto";
+import { AcademicOfferDto } from "@/application/dtos/AcademicOfferDto";
 import { School } from "@/domain/entities/School";
 import { Course } from "@/domain/entities/Course";
 import { Degree } from "@/domain/entities/Degree";
@@ -12,18 +12,14 @@ import fs from "fs";
 import path from "path";
 
 export class GenericCsvAdapter implements SchoolDataAdapter {
-  private cachedCatalog: CatalogSnapshotDto | null = null;
+  private cachedCatalog: AcademicOfferDto | null = null;
 
   constructor(
     private readonly school: School,
     private readonly dataDir: string
   ) {}
 
-  getSchool(): School {
-    return this.school;
-  }
-
-  async fetchCatalog(): Promise<CatalogSnapshotDto> {
+  async fetchCatalog(): Promise<AcademicOfferDto> {
     if (this.cachedCatalog) {
       return this.cachedCatalog;
     }

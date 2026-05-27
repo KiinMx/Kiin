@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
-import { CourseCSV } from "./CourseModel";
+import { CourseCSV } from "@/infrastructure/models/CourseModel";
 
 export class CoursesModelDao {
   private static _results: CourseCSV[] = [];

@@ -2,7 +2,7 @@
 
 import { useScheduleGenerator } from "@/app/hooks/useScheduleGenerator";
 import { ScheduleState } from "@/app/hooks/useGoogleAuth";
-import SubjectCategory from "@/domain/entities/SubjectCategory";
+import SubjectCategory from "@/application/filters/SubjectCategory";
 import SchedulesView from "../widgets/SchedulesView";
 import SubjectsView from "../widgets/SubjectsView";
 import CurrentSchedule from "../widgets/CurrentSchedule";

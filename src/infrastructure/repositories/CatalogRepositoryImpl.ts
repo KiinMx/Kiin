@@ -4,10 +4,11 @@ import { Degree } from "@/domain/entities/Degree";
 import { Professor } from "@/domain/entities/Professor";
 import { Subject } from "@/domain/entities/Subject";
 import { CatalogRepository } from "@/domain/repositories/CatalogRepository";
-import { CourseMapper } from "@/lib/data/CourseMapper";
-import { CourseCSV } from "@/lib/data/CourseModel";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
-import { SubjectMapper } from "@/lib/data/SubjectMapper";
+import { CourseMapper } from "@/infrastructure/mappers/FmatCourseMapper";
+import { CourseCSV } from "@/infrastructure/models/CourseModel";
+import { CoursesModelDao } from "@/infrastructure/datasource/CoursesModelDAO";
+import { SubjectMapper } from "@/infrastructure/mappers/FmatSubjectMapper";
+import { normalizeName } from "@/infrastructure/helpers/normalizeName";
 
 export class CatalogRepositoryImpl implements CatalogRepository {
   async loadCatalog(): Promise<CatalogSnapshotDto> {
@@ -33,7 +34,7 @@ export class CatalogRepositoryImpl implements CatalogRepository {
 
     for (const row of rows) {
       for (const degreeName of this.splitDegreeNames(row.PE)) {
-        const normalizedName = this.normalizeName(degreeName);
+        const normalizedName = normalizeName(degreeName);
 
         if (degreeByName.has(normalizedName)) {
           continue;
@@ -78,7 +79,7 @@ export class CatalogRepositoryImpl implements CatalogRepository {
         continue;
       }
 
-      const professor = new Professor(professors.length + 1, row.Nombres ?? "", row.Apellidos ?? "");
+      const professor = new Professor(professors.length + 1, normalizeName(row.Nombres ?? ""), normalizeName(row.Apellidos ?? ""));
       professors.push(professor);
       professorByKey.set(key, professor);
     }
@@ -137,7 +138,7 @@ export class CatalogRepositoryImpl implements CatalogRepository {
       }
 
       for (const degreeName of this.splitDegreeNames(row.PE)) {
-        const degree = degreeByName.get(this.normalizeName(degreeName));
+        const degree = degreeByName.get(normalizeName(degreeName));
 
         if (degree && !degree.subjects.some(existing => existing.id === subject.id)) {
           degree.addSubject(subject);
@@ -159,35 +160,31 @@ export class CatalogRepositoryImpl implements CatalogRepository {
   private splitDegreeNames(rawDegrees: string): string[] {
     return rawDegrees
       .split("-")
-      .map(degree => this.normalizeName(degree))
+      .map(degree => normalizeName(degree))
       .filter(Boolean);
   }
 
-  private normalizeName(value: string): string {
-    return value.trim() || "Unknown";
-  }
-
   private subjectKey(row: CourseCSV): string {
-    return `${this.normalizeName(row.Asignatura)}|${this.normalizeName(row.PE)}`;
+    return `${normalizeName(row.Asignatura)}|${normalizeName(row.PE)}`;
   }
 
   private subjectKeyFromSubject(subject: Subject): string {
-    return `${this.normalizeName(subject.name)}|${this.normalizeName(subject.degreeResume)}`;
+    return `${normalizeName(subject.name)}|${normalizeName(subject.degreeResume)}`;
   }
 
   private professorKey(row: CourseCSV): string {
-    return `${this.normalizeName(row.Nombres)}|${this.normalizeName(row.Apellidos)}`;
+    return `${normalizeName(row.Nombres)}|${normalizeName(row.Apellidos)}`;
   }
 
   private professorKeyFromProfessor(professor: Professor): string {
-    return `${this.normalizeName(professor.names)}|${this.normalizeName(professor.lastNames)}`;
+    return `${normalizeName(professor.names)}|${normalizeName(professor.lastNames)}`;
   }
 
   private subjectMatchesRow(subject: Subject, row: CourseCSV): boolean {
-    return subject.name === this.normalizeName(row.Asignatura) && subject.degreeResume === this.normalizeName(row.PE);
+    return subject.name === normalizeName(row.Asignatura) && subject.degreeResume === normalizeName(row.PE);
   }
 
   private professorMatchesRow(professor: Professor, row: CourseCSV): boolean {
-    return professor.names === this.normalizeName(row.Nombres) && professor.lastNames === this.normalizeName(row.Apellidos);
+    return professor.names === normalizeName(row.Nombres) && professor.lastNames === normalizeName(row.Apellidos);
   }
 }

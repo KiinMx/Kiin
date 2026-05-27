@@ -25,10 +25,10 @@ describe('Filtration Tests', () => {
       const professors = await professor.getAll(); 
     
       for(const professor of professors){
-        const validName = professor.fullName();
+        const validName = professor.fullName;
         const filteredCourses = filter.filterByProfessor(courses, validName);
         for(const course of filteredCourses){
-          expect(course.professor.fullName()).toBe(validName);
+          expect(course.professor.fullName).toBe(validName);
         }
       }
     });

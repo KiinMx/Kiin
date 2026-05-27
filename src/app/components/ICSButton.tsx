@@ -57,15 +57,12 @@ X-WR-CALDESC:Horario generado desde Kiin
                 // Make sure it's within the semester
                 if (firstOccurrence > end) return;
 
-                const startTime = session.startHour;
-                const endTime = session.endHour;
-
                 // Create the start and end datetime for the first occurrence
                 const eventStart = new Date(firstOccurrence);
-                eventStart.setHours(startTime.hours(), startTime.minutes(), 0, 0);
+                eventStart.setHours(session.hours, session.minutes, 0, 0);
 
                 const eventEnd = new Date(firstOccurrence);
-                eventEnd.setHours(endTime.hours(), endTime.minutes(), 0, 0);
+                eventEnd.setHours(session.endHours, session.endMinutes, 0, 0);
 
                 // Format dates for ICS (YYYYMMDDTHHMMSS)
                 const formatDateTime = (date: Date): string => {
@@ -79,7 +76,7 @@ X-WR-CALDESC:Horario generado desde Kiin
                     lastOccurrence.setDate(lastOccurrence.getDate() - 1);
                 }
 
-                const uid = `${course.id}-${session.day}-${session.startHour.format('HHmm')}-kiin@horario.com`;
+                const uid = `${course.id}-${session.day}-${session.startHourFormatted.replace(':', '')}-kiin@horario.com`;
                 const summary = `${course.subject.name} - Grupo ${course.group}`;
                 const description = `Profesor: ${course.professor.fullName}\\nGrupo: ${course.group}\\nModalidad: ${course.modality}`;
                 const location = session.room || '';

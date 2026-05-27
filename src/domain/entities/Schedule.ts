@@ -1,5 +1,5 @@
 import { Course } from "./Course";
-import { Pivot } from "./Pivot";
+import { Pivot } from "@/application/filters/Pivot";
 import { Professor } from "./Professor";
 import { Subject } from "./Subject";
 

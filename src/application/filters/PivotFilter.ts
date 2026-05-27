@@ -1,4 +1,4 @@
-import { Schedule } from "./Schedule";
+import { Schedule } from "@/domain/entities/Schedule";
 
 import { PostGenerationFilter } from "./PostGenerationFilter";
 

@@ -1,7 +1,6 @@
 import CatalogClientPort from "@/application/ports/CatalogClientPort";
 import { Course } from "@/domain/entities/Course";
 import { Degree } from "@/domain/entities/Degree";
-import { Filter } from "@/domain/entities/Filter";
 import { Subject } from "@/domain/entities/Subject";
 import { CoursesCsvDatasource } from "@/infrastructure/datasource/CoursesCsvDatasource";
 import { DegreesCsvDataSource } from "@/infrastructure/datasource/DegreesCsvDataSource";
@@ -20,8 +19,8 @@ export class CatalogClientImpl implements CatalogClientPort {
     return this.subjectsSource.getAll();
   }
 
-  async getCoursesByFilter(filter: Filter): Promise<Course[]> {
-    return this.coursesSource.getCoursesByFilter(filter);
+  async getCourses(): Promise<Course[]> {
+    return this.coursesSource.getAll();
   }
 }
 

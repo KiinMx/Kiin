@@ -4,7 +4,6 @@ import { Degree } from "@/domain/entities/Degree";
 import { Professor } from "@/domain/entities/Professor";
 import { Session } from "@/domain/entities/Session";
 import { Subject } from "@/domain/entities/Subject";
-import moment from "moment";
 
 
 export class Mapper {
@@ -46,10 +45,16 @@ export class Mapper {
     }
 
     static toSession(json: any): Session {
+        const startMinutes = typeof json._startHour === 'number'
+            ? json._startHour
+            : Session.fromTimeString(json._startHour);
+        const endMinutes = typeof json._endHour === 'number'
+            ? json._endHour
+            : Session.fromTimeString(json._endHour);
         return new Session(
             json._day,
-            moment.utc(json._startHour, 'HH:mm'),
-            moment.utc(json._endHour, 'HH:mm'),
+            startMinutes,
+            endMinutes,
             json._room
         );
     }

@@ -1,6 +1,6 @@
 import { Subject } from "@/domain/entities/Subject";
 import { catalogState } from "@/infrastructure/state/catalogState";
-import { globalInitialLoad } from "@/lib/data/initialLoad";
+import { globalInitialLoad } from "@/application/use_cases/initialLoad";
 import { NextApiRequest, NextApiResponse } from "next";
 
 export class Subjects {

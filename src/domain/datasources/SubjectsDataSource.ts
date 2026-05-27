@@ -1,7 +1,7 @@
 import { Subject } from "../entities/Subject";
 
 
-export interface SubjectsDatasource {
+export interface SubjectsDataSource {
 
     getAll(): Promise<Subject[]>;
 

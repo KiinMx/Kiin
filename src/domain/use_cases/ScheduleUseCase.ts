@@ -1,15 +1,15 @@
-import Category from "@/domain/entities/Category";
+import Category from "@/application/filters/Category";
+import DegreeCategory from "@/application/filters/DegreeCategory";
+import { PinnedSubjectFilter } from "@/application/filters/PinnedSubjectFilter";
+import { Pivot } from "@/application/filters/Pivot";
+import { PivotFilter } from "@/application/filters/PivotFilter";
+import { PostGenerationFilter } from "@/application/filters/PostGenerationFilter";
+import SubjectCategory from "@/application/filters/SubjectCategory";
 import { Course } from "@/domain/entities/Course";
 import { Degree } from "@/domain/entities/Degree";
-import DegreeCategory from "@/domain/entities/DegreeCategory";
-import { PinnedSubjectFilter } from "@/domain/entities/PinnedSubjectFilter";
-import { Pivot } from "@/domain/entities/Pivot";
-import { PivotFilter } from "@/domain/entities/PivotFilter";
-import { PostGenerationFilter } from "@/domain/entities/PostGenerationFilter";
 import { Schedule } from "@/domain/entities/Schedule";
 import { ScheduleGenerator } from "@/domain/entities/ScheduleGenerator";
 import { Subject } from "@/domain/entities/Subject";
-import SubjectCategory from "@/domain/entities/SubjectCategory";
 
 export interface ScheduleGenerationResult {
 	schedules: Schedule[];

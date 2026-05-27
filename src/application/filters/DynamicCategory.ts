@@ -1,6 +1,6 @@
 import Category from "./Category";
 import CourseFilter from "./CourseFilter";
-import { Degree } from "./Degree";
+import { Degree } from "@/domain/entities/Degree";
 import DegreeCategory from "./DegreeCategory";
 
 /**

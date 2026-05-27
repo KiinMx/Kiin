@@ -2,8 +2,7 @@ import { Course } from "@/domain/entities/Course";
 import { Professor } from "@/domain/entities/Professor";
 import { Session } from "@/domain/entities/Session";
 import { Subject } from "@/domain/entities/Subject";
-import moment from "moment";
-import { CourseCSV } from "./CourseModel";
+import { CourseCSV } from "@/infrastructure/models/CourseModel";
 
 export class CourseMapper {
 
@@ -35,6 +34,7 @@ export class CourseMapper {
 
         return course;
     }
+
     private static getSessions(result: CourseCSV): Session[] {
 
         const sessions: Session[] = [];
@@ -57,11 +57,11 @@ export class CourseMapper {
 
             for (let i = 0; i < timeSlots.length; i++) {
                 const hours = this.getHours(timeSlots[i]);
-                if (!hours || hours.length !== 2) {
+                if (!hours) {
                     continue;
                 }
 
-                const classroom = classrooms[i] || classrooms[0]; // Use first classroom if not enough classrooms
+                const classroom = classrooms[i] || classrooms[0];
                 const session = new Session(day[0], hours[0], hours[1], classroom);
                 sessions.push(session);
             }
@@ -69,16 +69,17 @@ export class CourseMapper {
 
         return sessions;
     }
-    private static getHours(time: string): moment.Moment[] | null {
-        const hours = time.split('-').map(h => h.trim());
 
-        if (hours.length === 2) {
-            return [
-                moment.utc(hours[0], 'HH:mm'),
-                moment.utc(hours[1], 'HH:mm')
-            ];
+    private static getHours(time: string): [number, number] | null {
+        const parts = time.split('-').map(h => h.trim());
+
+        if (parts.length === 2) {
+            const startMinutes = Session.fromTimeString(parts[0]);
+            const endMinutes = Session.fromTimeString(parts[1]);
+            if (!isNaN(startMinutes) && !isNaN(endMinutes)) {
+                return [startMinutes, endMinutes];
+            }
         }
         return null;
     }
-
 }

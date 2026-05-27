@@ -1,13 +1,12 @@
 /* @jest-environment node */
-import moment from "moment";
 import ScheduleUseCase from "@/domain/use_cases/ScheduleUseCase";
-import { Degree } from "@/domain/entities/Degree";
-import { Subject } from "@/domain/entities/Subject";
-import SubjectCategory from "@/domain/entities/SubjectCategory";
-import { Professor } from "@/domain/entities/Professor";
+import { Pivot } from "@/application/filters/Pivot";
+import SubjectCategory from "@/application/filters/SubjectCategory";
 import { Course } from "@/domain/entities/Course";
+import { Degree } from "@/domain/entities/Degree";
+import { Professor } from "@/domain/entities/Professor";
 import { Session } from "@/domain/entities/Session";
-import { Pivot } from "@/domain/entities/Pivot";
+import { Subject } from "@/domain/entities/Subject";
 
 describe("ScheduleUseCase", () => {
   test("buildInitialCategories creates degree + semesters", () => {
@@ -54,8 +53,8 @@ describe("ScheduleUseCase", () => {
     const c2 = new Course(2, subj2, prof2, 1, "P", 4, false);
 
     // non-overlapping sessions: 08:00-10:00 and 10:00-12:00 same day
-    const s1 = new Session("Lunes", moment.utc("08:00", "HH:mm"), moment.utc("10:00", "HH:mm"), "A1");
-    const s2 = new Session("Lunes", moment.utc("10:00", "HH:mm"), moment.utc("12:00", "HH:mm"), "A1");
+    const s1 = new Session("Lunes", Session.fromTimeString("08:00"), Session.fromTimeString("10:00"), "A1");
+    const s2 = new Session("Lunes", Session.fromTimeString("10:00"), Session.fromTimeString("12:00"), "A1");
 
     c1.sessions = [s1];
     c2.sessions = [s2];

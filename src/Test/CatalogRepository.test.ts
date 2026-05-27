@@ -1,8 +1,7 @@
 /* @jest-environment node */
 import { CatalogRepositoryImpl } from "@/infrastructure/repositories/CatalogRepositoryImpl";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
 
-jest.mock("@/lib/data/CoursesModelDAO", () => ({
+jest.mock("@/infrastructure/datasource/CoursesModelDAO", () => ({
   CoursesModelDao: { getCourses: jest.fn().mockResolvedValue([]) }
 }));
 

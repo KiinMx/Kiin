@@ -1,6 +1,6 @@
-import { CoursesDataSource } from "@/domain/datasources/CoursesDataSource";
+import { Filter } from "@/application/filters/Filter";
 import { Course } from "@/domain/entities/Course";
-import { Filter } from "@/domain/entities/Filter";
+import { CoursesDataSource } from "@/domain/datasources/CoursesDataSource";
 import { CoursesRepository } from "@/domain/repositories/CoursesRepository";
 
 export class CoursesRepositoryImpl implements CoursesRepository {

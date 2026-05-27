@@ -1,4 +1,4 @@
-import { SubjectsDatasource } from "@/domain/datasources/SubjectsDataSource";
+import { SubjectsDataSource } from "@/domain/datasources/SubjectsDataSource";
 import { Subject } from "@/domain/entities/Subject";
 import { SubjectsRepository } from "@/domain/repositories/SubjectsRepository";
 
@@ -7,7 +7,7 @@ export class SubjectsRepositoryImpl implements SubjectsRepository {
 
     private _dataSource;
 
-    constructor(dataSource: SubjectsDatasource) {
+    constructor(dataSource: SubjectsDataSource) {
         this._dataSource = dataSource;
 
     }

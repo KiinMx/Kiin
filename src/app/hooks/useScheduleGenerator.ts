@@ -1,12 +1,12 @@
-import Category from "@/domain/entities/Category";
+import Category from "@/application/filters/Category";
+import { default as CourseFilter } from "@/application/filters/CourseFilter";
+import { Pivot } from "@/application/filters/Pivot";
+import SubjectCategory from "@/application/filters/SubjectCategory";
 import { Degree } from "@/domain/entities/Degree";
-import { Pivot } from "@/domain/entities/Pivot";
 import { Schedule } from "@/domain/entities/Schedule";
 import { Subject } from "@/domain/entities/Subject";
-import SubjectCategory from "@/domain/entities/SubjectCategory";
 import { ScheduleUseCase } from "@/domain/use_cases/ScheduleUseCase";
 import CatalogClientImpl from "@/infrastructure/datasource/CatalogClientImpl";
-import { FilterImpl } from "@/infrastructure/datasource/FilterImpl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface NotificationState {
@@ -70,17 +70,21 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
         showNotification("Generando horarios...");
 
         const client = new CatalogClientImpl();
-        const filter = new FilterImpl(categories.map(c => c.toCourseFilter()));
-        const courses = await client.getCoursesByFilter(filter);
+        const allCourses = await client.getCourses();
 
-        if (courses.length === 0) {
+        const courseFilters: CourseFilter[] = categories.map(c => c.toCourseFilter());
+        const filteredCourses = allCourses.filter(course =>
+            courseFilters.every(f => f.satisfy(course))
+        );
+
+        if (filteredCourses.length === 0) {
             setGeneratedSchedules([]);
             setIsFilterCoursesEmpty(true);
             setNotification({ message: "", visible: false });
             return;
         }
 
-        const result = scheduleUseCase.generateSchedules(courses, pinnedSubjects, pivots);
+        const result = scheduleUseCase.generateSchedules(filteredCourses, pinnedSubjects, pivots);
 
         setDefaultSubjectsCount(result.maxCourses);
         setGeneratedSchedules(result.schedules);

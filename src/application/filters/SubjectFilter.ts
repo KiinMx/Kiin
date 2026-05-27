@@ -1,6 +1,6 @@
-import { Course } from "./Course";
+import { Course } from "@/domain/entities/Course";
 import CourseFilter from "./CourseFilter";
-import { Subject } from "./Subject";
+import { Subject } from "@/domain/entities/Subject";
 
 export default class SubjectFilter implements CourseFilter {
     private _subjects: Subject[];
@@ -9,7 +9,7 @@ export default class SubjectFilter implements CourseFilter {
         this._subjects = subjects;
     }
 
-    satify(course: Course): boolean {
+    satisfy(course: Course): boolean {
         if (this._subjects.length === 0) {
             return true;
         }

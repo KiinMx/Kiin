@@ -44,8 +44,8 @@ function mapEvents(course: Course, isConflict: boolean = false) {
         const day = days[sessionI.day as keyof typeof days];
         const dateI = `2025-01-${day}`;
 
-        const startDateTimeString = `${dateI}T${sessionI.startHour.format('HH:mm:ss')}`;
-        const endDateTimeString = `${dateI}T${sessionI.endHour.format('HH:mm:ss')}`;
+        const startDateTimeString = `${dateI}T${sessionI.startHourFormatted}:00`;
+        const endDateTimeString = `${dateI}T${sessionI.endHourFormatted}:00`;
 
         const start = new Date(startDateTimeString);
         const end = new Date(endDateTimeString);

@@ -1,8 +1,8 @@
-import CourseFilter from "@/domain/entities/CourseFilter";
+import CourseFilter from "./CourseFilter";
 import { Degree } from "@/domain/entities/Degree";
-import DynamicCategory from "@/domain/entities/DynamicCategory";
+import DynamicCategory from "./DynamicCategory";
 import { Subject } from "@/domain/entities/Subject";
-import SubjectFilter from "@/domain/entities/SubjectFilter";
+import SubjectFilter from "./SubjectFilter";
 
 export default class SubjectCategory extends DynamicCategory<Subject> {
 

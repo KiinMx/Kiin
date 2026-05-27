@@ -1,5 +1,5 @@
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { Pivot } from '@/domain/entities/Pivot';
+import { Pivot } from '@/application/filters/Pivot';
 
 export interface ScheduleState {
   ids: number[];

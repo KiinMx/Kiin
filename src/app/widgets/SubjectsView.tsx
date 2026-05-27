@@ -1,10 +1,10 @@
-import Category from '@/domain/entities/Category';
+import Category from '@/application/filters/Category';
+import SubjectCategory from '@/application/filters/SubjectCategory';
+import { Pivot } from '@/application/filters/Pivot';
 import { Professor } from '@/domain/entities/Professor';
 import { Subject } from '@/domain/entities/Subject';
-import SubjectCategory from '@/domain/entities/SubjectCategory';
 import { ProfessorsCsvDataSource } from '@/infrastructure/datasource/ProfessorsCsvDataSource';
 import { useEffect, useState } from 'react';
-import { Pivot } from '../../domain/entities/Pivot';
 import FilterSelector from '../components/FilterSelector';
 import SideBar from '../components/SideBar';
 

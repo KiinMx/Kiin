@@ -1,5 +1,5 @@
 import { Course } from "../entities/Course";
-import { Filter } from "../entities/Filter";
+import { Filter } from "@/application/filters/Filter";
 
 export interface CoursesRepository {
   getAll(): Promise<Course[]>;

@@ -1,4 +1,4 @@
-import { Course } from "./Course";
+import { Course } from "@/domain/entities/Course";
 
 export interface Filter {
     filter(courses: Course[]): Promise<Course[]>;

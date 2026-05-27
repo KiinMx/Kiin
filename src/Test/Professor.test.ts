@@ -12,8 +12,7 @@ describe('professors Tests', () => {
       const professors = await professor.getAll(); 
 
       for (const professor of professors){
-        const expected = professor.fullName();
-        console.log(expected);
+        const expected = professor.fullName;
         expect(expected).toBeDefined();
         expect(expected).not.toBe('');
       }
@@ -25,7 +24,7 @@ describe('professors Tests', () => {
       const professors = await professor.getAll(); 
 
       for (const professor of professors){
-        const expected = professor.fullName();
+        const expected = professor.fullName;
         console.log(expected);
       } 
     });

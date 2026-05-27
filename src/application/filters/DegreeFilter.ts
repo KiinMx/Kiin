@@ -1,6 +1,6 @@
-import { Course } from "./Course";
+import { Course } from "@/domain/entities/Course";
 import CourseFilter from "./CourseFilter";
-import { Degree } from "./Degree";
+import { Degree } from "@/domain/entities/Degree";
 
 export default class DegreeFilter implements CourseFilter {
     private _degrees: Degree[];
@@ -9,7 +9,7 @@ export default class DegreeFilter implements CourseFilter {
         this._degrees = degrees;
     }
 
-    satify(course: Course): boolean {
+    satisfy(course: Course): boolean {
         if (this._degrees.length === 0) {
             return true;
         }

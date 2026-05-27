@@ -1,4 +1,4 @@
-import { Schedule } from "./Schedule";
+import { Schedule } from "@/domain/entities/Schedule";
 
 export interface PostGenerationFilter {
 

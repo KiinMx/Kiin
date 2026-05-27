@@ -1,7 +1,7 @@
 import SubjectsView from '@/app/widgets/SubjectsView';
-import { Pivot } from '@/domain/entities/Pivot';
+import { Pivot } from '@/application/filters/Pivot';
+import SubjectCategory from '@/application/filters/SubjectCategory';
 import { Subject } from '@/domain/entities/Subject';
-import SubjectCategory from '@/domain/entities/SubjectCategory';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import React, { useState } from 'react';

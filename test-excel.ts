@@ -1,5 +1,5 @@
 // Test script para verificar que CoursesModelDAO funciona con Excel
-import { CoursesModelDao } from './src/lib/data/CoursesModelDAO';
+import { CoursesModelDao } from './src/infrastructure/datasource/CoursesModelDAO';
 
 async function testExcelReading() {
     try {

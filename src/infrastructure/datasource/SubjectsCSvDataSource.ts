@@ -1,8 +1,8 @@
-import { SubjectsDatasource } from "@/domain/datasources/SubjectsDataSource";
+import { SubjectsDataSource } from "@/domain/datasources/SubjectsDataSource";
 import { Subject } from "@/domain/entities/Subject";
 import { Mapper } from "../mappers/Mapper";
 
-export class SubjectsCsvDataSource implements SubjectsDatasource {
+export class SubjectsCsvDataSource implements SubjectsDataSource {
   private subjects: Subject[] = [];
 
   async getAll(): Promise<Subject[]> {

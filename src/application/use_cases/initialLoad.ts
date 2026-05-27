@@ -12,7 +12,7 @@ function resolveAdapter(schoolSlug: string): SchoolDataAdapter {
   }
 
   if (schoolSlug === "fmat") {
-    return new FmatAdapter("public/data");
+    return new FmatAdapter("public/data/fmat");
   }
 
   return new GenericCsvAdapter(school, "public/data");

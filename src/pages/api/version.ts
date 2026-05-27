@@ -15,7 +15,7 @@ interface ExcelFileInfo {
  */
 async function getLatestExcelFileDate(): Promise<string> {
     try {
-        const dataDir = path.join(process.cwd(), 'public', 'data');
+        const dataDir = path.join(process.cwd(), 'public', 'data', 'fmat');
 
         // Leer todos los archivos en la carpeta public/data
         const files = fs.readdirSync(dataDir);

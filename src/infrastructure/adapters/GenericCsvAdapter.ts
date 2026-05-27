@@ -81,15 +81,18 @@ export class GenericCsvAdapter implements SchoolDataAdapter {
   }
 
   private normalizeRow(raw: Record<string, string>): CanonicalCourseCSV {
+    const normalize = (s: string) =>
+      s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w]/g, "");
+
     const find = (keys: string[], fallback: string = ''): string => {
       for (const key of keys) {
-        const found = Object.keys(raw).find(k => k.trim().toLowerCase().replace(/[^\wáéíóúüñ]/g, '') === key);
+        const found = Object.keys(raw).find(k => normalize(k) === normalize(key));
         if (found && raw[found] !== undefined) return raw[found];
       }
       return fallback;
     };
 
-    const aulaKeys = Object.keys(raw).filter(k => k.trim().toLowerCase().startsWith('aula'));
+    const aulaKeys = Object.keys(raw).filter(k => normalize(k).startsWith('aula'));
 
     return {
       Periodo: find(['periodo']),

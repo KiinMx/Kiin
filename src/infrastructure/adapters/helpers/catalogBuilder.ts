@@ -31,7 +31,7 @@ function subjectMatchesRow(subject: Subject, row: CanonicalCourseCSV): boolean {
 }
 
 function professorMatchesRow(professor: Professor, row: CanonicalCourseCSV): boolean {
-  return professor.names === normalizeName(row.Nombres) && professor.lastNames === normalizeName(row.Apellidos);
+  return professor.lastNames === normalizeName(row.Apellidos);
 }
 
 function splitDegreeNames(rawDegrees: string): string[] {
@@ -94,6 +94,9 @@ export function buildSubjects(rows: CanonicalCourseCSV[]): Subject[] {
     const key = subjectKey(row);
     if (subjectByKey.has(key)) continue;
     const semesters = row.Semestre.split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (semesters.length === 0) {
+      semesters.push(0);
+    }
     const subject = new Subject(
       subjects.length + 1,
       normalizeName(row.Asignatura),

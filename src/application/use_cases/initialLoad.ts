@@ -4,6 +4,7 @@ import { catalogState } from "@/infrastructure/state/catalogState";
 import { School } from "@/domain/entities/School";
 import { FmatAdapter } from "@/infrastructure/adapters/FmatAdapter";
 import { GenericCsvAdapter } from "@/infrastructure/adapters/GenericCsvAdapter";
+import { PsicologiaAdapter } from "@/infrastructure/adapters/PsicologiaAdapter";
 
 function resolveAdapter(schoolSlug: string): SchoolDataAdapter {
   const school = School.fromSlug(schoolSlug);
@@ -13,6 +14,10 @@ function resolveAdapter(schoolSlug: string): SchoolDataAdapter {
 
   if (schoolSlug === "fmat") {
     return new FmatAdapter("public/data/fmat");
+  }
+
+  if (schoolSlug === "psicologia") {
+    return new PsicologiaAdapter();
   }
 
   return new GenericCsvAdapter(school, "public/data");

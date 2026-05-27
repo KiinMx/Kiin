@@ -9,7 +9,8 @@ export default class SubjectCategory extends DynamicCategory<Subject> {
     private _semester: number;
    
     constructor(semester: number, values: Subject[]) {
-        super(`Semestre ${semester}`, values.filter(s => s.semestre.includes(semester)).map(subject => ({ label: subject.name, id: subject.id, value: subject })));
+        const title = semester === 0 ? "Sin semestre" : `Semestre ${semester}`;
+        super(title, values.filter(s => s.semestre.includes(semester)).map(subject => ({ label: subject.name, id: subject.id, value: subject })));
         this._semester = semester;
     }
     

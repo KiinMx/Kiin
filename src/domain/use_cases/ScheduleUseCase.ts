@@ -29,7 +29,9 @@ export class ScheduleUseCase {
 			.fill(0)
 			.map((_, index) => new SubjectCategory(index + 1, subjects));
 
-		return [degreesCategory, ...semesters];
+		const noSemester = new SubjectCategory(0, subjects);
+
+		return [degreesCategory, ...semesters, noSemester];
 	}
 
 	cleanOrphanedState(categories: Category[], pinnedSubjects: number[], pivots: Pivot[]): OrphanedScheduleState {

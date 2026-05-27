@@ -5,7 +5,7 @@ import { Session } from "./Session";
 export class Course {
   private _id: number;
   private _subject: Subject;
-  private _group: number;
+  private _group: string;
   private _professor: Professor;
   private _sessions: Session[] = [];
   private _modality: string;
@@ -17,7 +17,7 @@ export class Course {
     id: number,
     subject: Subject,
     professor: Professor,
-    group: number,
+    group: string,
     modality: string,
     weekHours: number,
     acceptModifications: boolean
@@ -27,7 +27,7 @@ export class Course {
     this._id = id;
     this._subject = subject;
     this._professor = professor;
-    this._group = group ?? 0;
+    this._group = group ?? "";
     this._modality = modality ?? "";
   }
 
@@ -46,7 +46,7 @@ export class Course {
     return this._sessions;
   }
 
-  public get group(): number {
+  public get group(): string {
     return this._group;
   }
 

@@ -143,7 +143,7 @@ export function buildCourses(rows: CanonicalCourseCSV[], subjects: Subject[], pr
       courses.length + 1,
       subject,
       professor,
-      parseInt(row.GRUPO) || 0,
+      row.GRUPO || "",
       row.Modalidad || "",
       parseFloat(row.Horas_a_la_semana) || 0,
       false

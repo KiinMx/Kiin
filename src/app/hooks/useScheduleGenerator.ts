@@ -1,19 +1,13 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { Schedule } from "@/domain/entities/Schedule";
-import { ScheduleGenerator } from "@/domain/entities/ScheduleGenerator";
-import { Pivot } from "@/domain/entities/Pivot";
 import Category from "@/domain/entities/Category";
-import SubjectCategory from "@/domain/entities/SubjectCategory";
-import { CoursesCsvDatasource } from "@/infrastructure/datasource/CoursesCsvDatasource";
-import { DegreesCsvDataSource } from "@/infrastructure/datasource/DegreesCsvDataSource";
-import { SubjectsCsvDataSource } from "@/infrastructure/datasource/SubjectsCSvDataSource";
-import { FilterImpl } from "@/infrastructure/datasource/FilterImpl";
-import { PinnedSubjectFilter } from "@/domain/entities/PinnedSubjectFilter";
-import { PivotFilter } from "@/domain/entities/PivotFilter";
-import { PostGenerationFilter } from "@/domain/entities/PostGenerationFilter";
 import { Degree } from "@/domain/entities/Degree";
-import DegreeCategory from "@/domain/entities/DegreeCategory";
+import { Pivot } from "@/domain/entities/Pivot";
+import { Schedule } from "@/domain/entities/Schedule";
 import { Subject } from "@/domain/entities/Subject";
+import SubjectCategory from "@/domain/entities/SubjectCategory";
+import { ScheduleUseCase } from "@/domain/use_cases/ScheduleUseCase";
+import CatalogClientImpl from "@/infrastructure/datasource/CatalogClientImpl";
+import { FilterImpl } from "@/infrastructure/datasource/FilterImpl";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface NotificationState {
     message: string;
@@ -43,6 +37,7 @@ interface UseScheduleGeneratorReturn {
 }
 
 export function useScheduleGenerator(): UseScheduleGeneratorReturn {
+    const scheduleUseCase = useMemo(() => new ScheduleUseCase(), []);
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentCategories, setCurrentCategories] = useState<Category[]>([]);
     const [pivots, setPivots] = useState<Pivot[]>([]);
@@ -71,32 +66,12 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
         return generatedSchedules;
     }, [generatedSchedules, selectedSubjectsCount]);
 
-    const removeOrphanPinnedItems = useCallback((categories: Category[]): {
-        cleanPinnedSubjects: number[];
-        cleanPivots: Pivot[];
-    } => {
-        const semestersWithSubjectsSelected = categories.filter(
-            c => c instanceof SubjectCategory
-        );
-        const selectedSubjectIds = semestersWithSubjectsSelected.flatMap(
-            s => s.selectedValues.flatMap(sv => (sv as { id: number }).id)
-        );
-        return {
-            cleanPinnedSubjects: pinnedSubjects.filter(id =>
-                selectedSubjectIds.includes(id)
-            ),
-            cleanPivots: pivots.filter(p =>
-                selectedSubjectIds.includes(p.idSubject)
-            )
-        };
-    }, [pinnedSubjects, pivots]);
-
     const generateSchedules = useCallback(async (categories: Category[]) => {
         showNotification("Generando horarios...");
 
-        const data = new CoursesCsvDatasource();
+        const client = new CatalogClientImpl();
         const filter = new FilterImpl(categories.map(c => c.toCourseFilter()));
-        const courses = await data.getCoursesByFilter(filter);
+        const courses = await client.getCoursesByFilter(filter);
 
         if (courses.length === 0) {
             setGeneratedSchedules([]);
@@ -105,44 +80,20 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
             return;
         }
 
-        const generator = new ScheduleGenerator();
-        const schedules = generator.generateSchedules(courses);
+        const result = scheduleUseCase.generateSchedules(courses, pinnedSubjects, pivots);
 
-        const pipeline: PostGenerationFilter[] = [
-            new PinnedSubjectFilter(pinnedSubjects),
-            new PivotFilter(pivots)
-        ];
-
-        const filtered = pipeline.reduce(
-            (result, filter) => filter.apply(result),
-            schedules
-        );
-
-        const sorted = filtered.sort((a, b) => b.courses.length - a.courses.length);
-        const maxCourses = sorted.length > 0
-            ? Math.max(...sorted.map(s => s.courses.length))
-            : 0;
-
-        setDefaultSubjectsCount(maxCourses);
-        setGeneratedSchedules(sorted);
-        showNotification(`${sorted.length} Horarios Generados!`);
-    }, [pinnedSubjects, pivots, showNotification]);
+        setDefaultSubjectsCount(result.maxCourses);
+        setGeneratedSchedules(result.schedules);
+        showNotification(`${result.schedules.length} Horarios Generados!`);
+    }, [pinnedSubjects, pivots, scheduleUseCase, showNotification]);
 
     const handleCategoryClick = useCallback((categories: Category[]) => {
         setCurrentCategories(categories);
-        const { cleanPinnedSubjects, cleanPivots } = removeOrphanPinnedItems(categories);
+        const { cleanPinnedSubjects, cleanPivots, maxSubjectsCount } = scheduleUseCase.cleanOrphanedState(categories, pinnedSubjects, pivots);
         setPinnedSubjects(cleanPinnedSubjects);
         setPivots(cleanPivots);
-
-        const semestersWithSubjectsSelected = categories.filter(
-            c => c instanceof SubjectCategory
-        );
-        let count = 0;
-        semestersWithSubjectsSelected.forEach(c => {
-            count += c.selectedValues.length;
-        });
-        setMaxSubjectsCount(count);
-    }, [removeOrphanPinnedItems]);
+        setMaxSubjectsCount(maxSubjectsCount);
+    }, [pinnedSubjects, pivots, scheduleUseCase]);
 
     const handleRemoveSubject = useCallback((categoryIndex: number, subjectId: number) => {
         const newCategories = [...currentCategories];
@@ -164,13 +115,11 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
     }, [currentCategories, pivots, pinnedSubjects, generateSchedules]);
 
     const mapCategories = useCallback(async () => {
-        const degrees: Degree[] = await (new DegreesCsvDataSource()).getAll();
-        const degreesCategory: Category = new DegreeCategory("Carrera", degrees);
-        const subjects: Subject[] = await (new SubjectsCsvDataSource()).getAll();
-        const semesters: SubjectCategory[] = Array(9).fill(0).map((_, index) => new SubjectCategory(index + 1, subjects));
-
-        setCurrentCategories([degreesCategory, ...semesters]);
-    }, []);
+        const client = new CatalogClientImpl();
+        const degrees: Degree[] = await client.getDegrees();
+        const subjects: Subject[] = await client.getSubjects();
+        setCurrentCategories(scheduleUseCase.buildInitialCategories(degrees, subjects));
+    }, [scheduleUseCase]);
 
     useEffect(() => {
         mapCategories();

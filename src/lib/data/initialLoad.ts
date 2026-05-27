@@ -1,32 +1,14 @@
-import { Courses } from "@/pages/api/courses/all";
-import { Degrees } from "@/pages/api/degrees/all";
-import { Professors } from "@/pages/api/professors/all";
-import { Subjects } from "@/pages/api/subjects/all";
+import { LoadCatalogUseCase } from "@/domain/use_cases/LoadCatalogUseCase";
+import { CatalogRepositoryImpl } from "@/infrastructure/repositories/CatalogRepositoryImpl";
+import { catalogState } from "@/infrastructure/state/catalogState";
 
 export async function globalInitialLoad() {
+  const loadCatalogUseCase = new LoadCatalogUseCase(new CatalogRepositoryImpl());
+  const snapshot = await loadCatalogUseCase.execute();
 
-
-  await Degrees.initialLoad();
-  await Subjects.initialLoad();
-  await Professors.initialLoad();
-  await Courses.initialLoad();
-
-  const courses = Courses.courses;
-
-  for (const course of courses) {
-
-    const subject = course.subject;
-
-    subject.addCourse(course.id);
-
-    const professor = course.professor;
-
-    if (subject.professors.find(professorId => professorId === professor.id) === undefined) {
-      subject.addProfessor(professor.id);
-    }
-  }
-
-
-
+  catalogState.degrees = snapshot.degrees;
+  catalogState.subjects = snapshot.subjects;
+  catalogState.professors = snapshot.professors;
+  catalogState.courses = snapshot.courses;
 
 }

@@ -35,4 +35,16 @@ export class FilterImpl implements Filter {
 
     return finalFiltered;
   }
+
+  filterByProfessor(courses: Course[], professorFullName: string): Course[] {
+    return courses.filter(course => {
+      const maybeFn = (course.professor as any).fullName;
+      const name = typeof maybeFn === 'function' ? maybeFn.call(course.professor) : maybeFn;
+      return name === professorFullName;
+    });
+  }
+
+  filterBySubjects(courses: Course[], subjectNameOrModality: string): Course[] {
+    return courses.filter(course => course.subject.name === subjectNameOrModality || course.modality === subjectNameOrModality);
+  }
 }

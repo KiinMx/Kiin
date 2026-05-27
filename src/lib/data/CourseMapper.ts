@@ -1,16 +1,21 @@
 import { Course } from "@/domain/entities/Course";
+import { Professor } from "@/domain/entities/Professor";
 import { Session } from "@/domain/entities/Session";
-import { Professors } from "@/pages/api/professors/all";
-import { Subjects } from "@/pages/api/subjects/all";
+import { Subject } from "@/domain/entities/Subject";
 import moment from "moment";
 import { CourseCSV } from "./CourseModel";
 
 export class CourseMapper {
 
-    public static fromModelToEntity(id: number, model: CourseCSV): Course {
+    public static fromModelToEntity(
+        id: number,
+        model: CourseCSV,
+        subjectResolver: (model: CourseCSV) => Subject | undefined,
+        professorResolver: (model: CourseCSV) => Professor | undefined,
+    ): Course {
 
-        const subject = Subjects.findSubject(model);
-        const professor = Professors.findProfessor(model);
+        const subject = subjectResolver(model);
+        const professor = professorResolver(model);
 
         if (!subject || !professor) {
             throw new Error("Subject or professor not found");

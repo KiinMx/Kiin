@@ -1,35 +1,18 @@
 import { Degree } from "@/domain/entities/Degree";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
+import { catalogState } from "@/infrastructure/state/catalogState";
 import { globalInitialLoad } from "@/lib/data/initialLoad";
 import { NextApiRequest, NextApiResponse } from "next";
 
 export class Degrees {
-    private static _degrees: Degree[] = [];
-
     public static get degrees(): Degree[] {
-        return Degrees._degrees;
+        return catalogState.degrees;
     }
     public static set degrees(value: Degree[]) {
-        Degrees._degrees = value;
+        catalogState.degrees = value;
     }
 
     public static async initialLoad() {
-
-        const results = await CoursesModelDao.getCourses();
-        let count = 0;
-
-        for (const result of results) {
-
-            const degreesResultCsv = result.PE.split("-");
-
-            degreesResultCsv.forEach((degreeString) => {
-                if (this.findDegree(degreeString.trim()) === undefined) {
-                    count++;
-                    this.degrees.push(new Degree(count, degreeString.trim() == "" ? "Unknown" : degreeString.trim()));
-                }
-            });
-
-        }
+        await globalInitialLoad();
     }
 
     public static findDegree(degreeCourseCSV: string): Degree | undefined {
@@ -41,7 +24,7 @@ export class Degrees {
 
     public static async getAll() {
 
-        if (this._degrees.length === 0) {
+        if (this.degrees.length === 0) {
             await globalInitialLoad();
         }
 

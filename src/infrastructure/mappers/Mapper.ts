@@ -48,8 +48,8 @@ export class Mapper {
     static toSession(json: any): Session {
         return new Session(
             json._day,
-            moment.utc(json._startHour),
-            moment.utc(json._endHour),
+            moment.utc(json._startHour, 'HH:mm'),
+            moment.utc(json._endHour, 'HH:mm'),
             json._room
         );
     }

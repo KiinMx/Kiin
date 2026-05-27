@@ -11,7 +11,7 @@ export class ProfessorsCsvDataSource implements ProfessorsDataSource {
     }
 
 
-    const res = await fetch("/api/version");
+    const res = await (await import("./apiFetch")).apiFetch("/api/version");
     const versionDeLaAPI = await res.json();
 
     const storedData = localStorage.getItem("professor-info-" + versionDeLaAPI);
@@ -28,7 +28,7 @@ export class ProfessorsCsvDataSource implements ProfessorsDataSource {
       .filter(key => key.startsWith("professor-info-"))
       .forEach(key => localStorage.removeItem(key));
       console.log("Profesores recuperados de la API");
-      const response = await fetch("/api/professors/all");
+      const response = await (await import("./apiFetch")).apiFetch("/api/professors/all");
 
       const convertedDegrees = Mapper.toProfessors(await response.json());
       const professors = convertedDegrees as Professor[];

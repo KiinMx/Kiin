@@ -1,42 +1,24 @@
 import { Course } from "@/domain/entities/Course";
-import { CourseMapper } from "@/lib/data/CourseMapper";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
+import { catalogState } from "@/infrastructure/state/catalogState";
 import { globalInitialLoad } from "@/lib/data/initialLoad";
 import { NextApiRequest, NextApiResponse } from "next";
 
 
 export class Courses {
-
-    private static _courses: Course[] = [];
     public static get courses(): Course[] {
-        return Courses._courses;
+        return catalogState.courses;
     }
     public static set courses(value: Course[]) {
-        Courses._courses = value;
+        catalogState.courses = value;
     }
 
     public static async initialLoad() {
-
-        const results = await CoursesModelDao.getCourses();
-        let count = 1;
-
-        for (const result of results) {
-            const currentCourse = CourseMapper.fromModelToEntity(count, result);
-
-            const courseAlreadyExist = this.courses.find((course) => course.subject.id == currentCourse.subject.id && course.group == currentCourse.group)
-
-            if (!courseAlreadyExist) {
-                this.courses.push(currentCourse);
-                count++;
-            } else {
-                courseAlreadyExist.addSession(currentCourse.sessions[0]);
-            }
-        }
+        await globalInitialLoad();
     }
 
     public static async getAll() {
 
-        if (this._courses.length === 0) {
+        if (this.courses.length === 0) {
             await globalInitialLoad();
         }
 

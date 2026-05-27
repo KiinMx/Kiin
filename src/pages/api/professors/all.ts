@@ -1,49 +1,30 @@
 import { Professor } from "@/domain/entities/Professor";
-import { CourseCSV } from "@/lib/data/CourseModel";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
+import { catalogState } from "@/infrastructure/state/catalogState";
 import { globalInitialLoad } from "@/lib/data/initialLoad";
 import { NextApiRequest, NextApiResponse } from "next";
 
 
 
 export class Professors {
-    private static _professors: Professor[] = []
-
     public static get professors() {
-        return Professors._professors;
+        return catalogState.professors;
     }
 
     public static set professors(professors: Professor[]) {
-        Professors._professors = professors;
+        catalogState.professors = professors;
     }
 
     public static async initialLoad() {
-        const results = await CoursesModelDao.getCourses();
-        let count = 0;
-
-        for (const result of results) {
-            if (this.findProfessor(result) === undefined) {
-                count++;
-                this._professors.push(new Professor(count, result.Nombres, result.Apellidos));
-            }
-        }
+        await globalInitialLoad();
     }
 
     public static async getAll() {
 
-        if (this._professors.length === 0) {
+        if (this.professors.length === 0) {
             await globalInitialLoad();
         }
 
-        return this._professors;
-    }
-
-    public static findProfessor(result: CourseCSV): Professor | undefined {
-        return this._professors.find(
-            (professor) =>
-                professor.names === result.Nombres &&
-                professor.lastNames === result.Apellidos
-        )
+        return this.professors;
     }
 
 }

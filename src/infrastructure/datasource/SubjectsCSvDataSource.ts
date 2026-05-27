@@ -11,7 +11,7 @@ export class SubjectsCsvDataSource implements SubjectsDatasource {
     }
 
 
-    const res = await fetch("/api/version");
+    const res = await (await import("./apiFetch")).apiFetch("/api/version");
     const versionDeLaAPI = await res.json();
 
     const storedData = localStorage.getItem("subject-info-" + versionDeLaAPI);
@@ -29,7 +29,7 @@ export class SubjectsCsvDataSource implements SubjectsDatasource {
         .forEach(key => localStorage.removeItem(key));
 
       console.log("Asignaturas recuperados de la API");
-      const response = await fetch("/api/subjects/all");
+      const response = await (await import("./apiFetch")).apiFetch("/api/subjects/all");
 
       const convertedSubjects = Mapper.toSubjects(await response.json());
       const subjects = convertedSubjects as Subject[];

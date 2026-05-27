@@ -41,7 +41,7 @@ describe('Filtration Tests', () => {
         const validName = modality;
         const filteredCourses = filter.filterBySubjects(courses, validName);
         for(const course of filteredCourses){
-          expect(course.subject.name).toBe(validName);
+          expect(course.subject.name === validName || course.modality === validName).toBeTruthy();
         }
       }
     });

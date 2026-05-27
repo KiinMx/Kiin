@@ -11,7 +11,7 @@ export class DegreesCsvDataSource implements DegreesDataSource {
     }
 
 
-    const res = await fetch("/api/version");
+    const res = await (await import("./apiFetch")).apiFetch("/api/version");
     const versionDeLaAPI = await res.json();
 
     const storedData = localStorage.getItem("degree-info-" + versionDeLaAPI);
@@ -30,7 +30,7 @@ export class DegreesCsvDataSource implements DegreesDataSource {
         .forEach(key => localStorage.removeItem(key));
 
       console.log("Recuperado de la API");
-      const response = await fetch("/api/degrees/all");
+      const response = await (await import("./apiFetch")).apiFetch("/api/degrees/all");
 
       const convertedDegrees = Mapper.toDegrees(await response.json());
       const degrees = convertedDegrees as Degree[];

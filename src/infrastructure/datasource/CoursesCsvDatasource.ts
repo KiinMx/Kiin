@@ -14,7 +14,7 @@ export class CoursesCsvDatasource implements CoursesDataSource {
     }
 
 
-    const res = await fetch("/api/version");
+    const res = await (await import("./apiFetch")).apiFetch("/api/version");
     const versionDeLaAPI = await res.json();
 
     const storedData = localStorage.getItem("course-info-" + versionDeLaAPI);
@@ -32,7 +32,7 @@ export class CoursesCsvDatasource implements CoursesDataSource {
         .forEach(key => localStorage.removeItem(key));
 
       console.log("Cursos recuperados de la API");
-      const response = await fetch("/api/courses/all");
+      const response = await (await import("./apiFetch")).apiFetch("/api/courses/all");
 
       const convertedCourses = Mapper.toCourses(await response.json());
       const courses = convertedCourses as Course[];

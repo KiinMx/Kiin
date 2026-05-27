@@ -24,4 +24,8 @@ export class Professor {
   get fullName(): string {
     return `${this._names} ${this._lastNames}`;
   }
+
+  fullName(): string {
+    return `${this._names} ${this._lastNames}`;
+  }
 }

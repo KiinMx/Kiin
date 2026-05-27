@@ -1,5 +1,23 @@
 # Kiin — Auditoría y Plan de Refactorización
 
+## ESTADO: En progreso
+
+### Completado
+
+- **FASE 0**: Typos corregidos (`satify`→`satisfy`), `fullName()` duplicado eliminado, `DataSource` naming unificado, dependencia `moment` eliminada de `Session`
+- **FASE 1.1**: `lib/data/` movido a `infrastructure/` (`CourseModel`→`models/`, `CourseMapper`→`mappers/FmatCourseMapper`, `CoursesModelDAO`→`datasource/`, `initialLoad`→`application/use_cases/`)
+- **FASE 1.2**: Categorías y filtros movidos de `domain/entities/` a `application/filters/` (20 archivos)
+- **FASE 1.5**: `FilterImpl` eliminado (violación DIP). Filtrado ahora inline en `useScheduleGenerator`
+- **FASE 2 (multifacultad)**: Arquitectura completa implementada:
+  - Entidad `School` con slugs predefinidos (`FMAT`, `EDUCACION`, `ARQUITECTURA`, `PSICOLOGIA`, `CONTABILIDAD`)
+  - Puerto `SchoolDataAdapter` (ISP: solo lectura)
+  - `GenericCsvAdapter` que lee CSV canónico desde `public/data/{slug}/`
+  - `CatalogRepositoryImpl` acepta `schoolSlug`
+  - Directorio `public/data/fmat/` con CSV canónico generado
+  - API routes aceptan `?school=` query param
+  - UI con botones de selección de facultad en la página principal
+  - Generador lee `?school=` de URL params
+
 ## 1. Auditoría del Estado Actual
 
 ### 1.1 Violaciones de Arquitectura Limpia

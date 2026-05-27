@@ -4,7 +4,7 @@ import { CatalogRepository } from "@/domain/repositories/CatalogRepository";
 export class LoadCatalogUseCase {
   constructor(private readonly catalogRepository: CatalogRepository) {}
 
-  async execute(): Promise<CatalogSnapshotDto> {
-    return this.catalogRepository.loadCatalog();
+  async execute(schoolSlug: string): Promise<CatalogSnapshotDto> {
+    return this.catalogRepository.loadCatalog(schoolSlug);
   }
 }

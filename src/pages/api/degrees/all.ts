@@ -11,35 +11,20 @@ export class Degrees {
         catalogState.degrees = value;
     }
 
-    public static async initialLoad() {
-        await globalInitialLoad();
+    public static async initialLoad(schoolSlug: string) {
+        await globalInitialLoad(schoolSlug);
     }
 
-    public static findDegree(degreeCourseCSV: string): Degree | undefined {
-        return this.degrees.find(
-            (degree) =>
-                degree.name === degreeCourseCSV
-        )
-    }
-
-    public static async getAll() {
-
-        if (this.degrees.length === 0) {
-            await globalInitialLoad();
+    public static async getAll(schoolSlug: string) {
+        if (catalogState.schoolSlug !== schoolSlug || this.degrees.length === 0) {
+            await globalInitialLoad(schoolSlug);
         }
-
         return this.degrees;
     }
-
-
 }
-
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
-    const degrees = await Degrees.getAll()
-
+    const school = req.query.school as string || 'fmat';
+    const degrees = await Degrees.getAll(school);
     return res.status(200).json(degrees);
 }
-
-

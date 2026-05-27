@@ -3,6 +3,7 @@ import { default as CourseFilter } from "@/application/filters/CourseFilter";
 import { Pivot } from "@/application/filters/Pivot";
 import SubjectCategory from "@/application/filters/SubjectCategory";
 import { Degree } from "@/domain/entities/Degree";
+import { School } from "@/domain/entities/School";
 import { Schedule } from "@/domain/entities/Schedule";
 import { Subject } from "@/domain/entities/Subject";
 import { ScheduleUseCase } from "@/domain/use_cases/ScheduleUseCase";
@@ -34,10 +35,12 @@ interface UseScheduleGeneratorReturn {
     defaultSubjectsCount: number;
     page: number;
     setPage: React.Dispatch<React.SetStateAction<number>>;
+    school: School | undefined;
 }
 
-export function useScheduleGenerator(): UseScheduleGeneratorReturn {
+export function useScheduleGenerator(schoolSlug: string): UseScheduleGeneratorReturn {
     const scheduleUseCase = useMemo(() => new ScheduleUseCase(), []);
+    const school = useMemo(() => School.fromSlug(schoolSlug), [schoolSlug]);
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentCategories, setCurrentCategories] = useState<Category[]>([]);
     const [pivots, setPivots] = useState<Pivot[]>([]);
@@ -119,11 +122,12 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
     }, [currentCategories, pivots, pinnedSubjects, generateSchedules]);
 
     const mapCategories = useCallback(async () => {
+        if (!school) return;
         const client = new CatalogClientImpl();
         const degrees: Degree[] = await client.getDegrees();
         const subjects: Subject[] = await client.getSubjects();
         setCurrentCategories(scheduleUseCase.buildInitialCategories(degrees, subjects));
-    }, [scheduleUseCase]);
+    }, [scheduleUseCase, school]);
 
     useEffect(() => {
         mapCategories();
@@ -155,6 +159,7 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
         maxSubjectsCount,
         defaultSubjectsCount,
         page,
-        setPage
+        setPage,
+        school,
     };
 }

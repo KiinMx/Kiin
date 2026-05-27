@@ -11,24 +11,20 @@ export class Subjects {
         catalogState.subjects = value;
     }
 
-    public static async initialLoad() {
-        await globalInitialLoad();
+    public static async initialLoad(schoolSlug: string) {
+        await globalInitialLoad(schoolSlug);
     }
 
-    public static async getAll() {
-
-        if (this.subjects.length === 0) {
-            await globalInitialLoad();
+    public static async getAll(schoolSlug: string) {
+        if (catalogState.schoolSlug !== schoolSlug || this.subjects.length === 0) {
+            await globalInitialLoad(schoolSlug);
         }
-
         return this.subjects;
     }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
-    const subjects = await Subjects.getAll();
+    const school = req.query.school as string || 'fmat';
+    const subjects = await Subjects.getAll(school);
     return res.status(200).json(subjects);
 }
-
-

@@ -6,9 +6,13 @@ import SubjectCategory from "@/application/filters/SubjectCategory";
 import SchedulesView from "../widgets/SchedulesView";
 import SubjectsView from "../widgets/SubjectsView";
 import CurrentSchedule from "../widgets/CurrentSchedule";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-const GeneratorPage = () => {
+function GeneratorPageInner() {
+    const searchParams = useSearchParams();
+    const schoolSlug = searchParams?.get("school") || "fmat";
+
     const [indexSelected, setIndexSelected] = useState(0);
     const [isSideBarOpen, setIsSideBarOpen] = useState(false);
     const [dayFormat, setDayFormat] = useState<"short" | "long">("long");
@@ -33,7 +37,7 @@ const GeneratorPage = () => {
         page,
         setPage,
         generateSchedules
-    } = useScheduleGenerator();
+    } = useScheduleGenerator(schoolSlug);
 
     useEffect(() => {
         const handleResize = () => {
@@ -199,7 +203,13 @@ const GeneratorPage = () => {
     );
 };
 
-export default GeneratorPage;
+export default function GeneratorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GeneratorPageInner />
+    </Suspense>
+  );
+}
 
 interface ButtonSwitchViewProps {
     label: string;

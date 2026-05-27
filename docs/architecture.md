@@ -18,18 +18,21 @@ Kiin (del maya "tiempo") es una aplicacion web para generar horarios academicos.
 8. [Sistema de Filtros](#8-sistema-de-filtros)
 9. [API Routes](#9-api-routes)
 10. [Exportacion a Google Calendar](#10-exportacion-a-google-calendar)
+11. [Estructura de Archivos](#11-estructura-de-archivos)
+12. [Diagrama C4](#12-diagrama-de-componentes-c4---nivel-2)
+13. [Patrones de Diseno](#13-patrones-de-diseno-utilizados)
 
 ---
 
 ## 1. Arquitectura General
 
-El proyecto sigue **Clean Architecture** con 4 capas, mas la capa Web de Next.js como interfaz.
+El proyecto sigue **Clean Architecture + Puertos y Adaptadores (Hexagonal)**.
 
 ```mermaid
 graph TB
-    subgraph Web["Capa Web - Next.js App Router + Pages API"]
+    subgraph Web["Capa Web - Next.js"]
         direction LR
-        Pages["Paginas + Layouts<br/>src/app/"]
+        Pages["Paginas<br/>src/app/"]
         Components["Componentes<br/>src/app/components/"]
         Widgets["Widgets<br/>src/app/widgets/"]
         Hooks["Hooks<br/>src/app/hooks/"]
@@ -47,30 +50,29 @@ graph TB
     subgraph Domain["Capa de Dominio"]
         direction LR
         Entities["Entidades<br/>src/domain/entities/"]
-        Repos["Repositorios (I)<br/>src/domain/repositories/"]
-        DS["Datasources (I)<br/>src/domain/datasources/"]
+        Repos["AcademicOfferRepository<br/>src/domain/repositories/"]
         DomUC["Casos de Uso<br/>src/domain/use_cases/"]
     end
 
     subgraph Infra["Capa de Infraestructura"]
         direction LR
-        RepoImpl["Repositorios Impl<br/>src/infrastructure/repositories/"]
+        ReposImpl["Repositorios<br/>src/infrastructure/repositories/"]
         Adapters["Adaptadores<br/>src/infrastructure/adapters/"]
-        DSImpl["Datasources Impl<br/>src/infrastructure/datasource/"]
-        Mappers["Mappers<br/>src/infrastructure/mappers/"]
-        State["Estado Global<br/>src/infrastructure/state/"]
+        DI["Contenedor DI<br/>src/infrastructure/container.ts"]
+        Mapper["Mapper<br/>src/infrastructure/mappers/"]
+        State["catalogState<br/>src/infrastructure/state/"]
         Models["Modelos CSV<br/>src/infrastructure/models/"]
     end
 
     Web --> App
     App --> Domain
-    Infra --> Domain
+    Infra -.->|"implementa"| Domain
     Infra --> App
 ```
 
 ### Principio de Dependencia
 
-Las flechas van hacia el dominio. Las capas externas dependen de las internas, nunca al reves.
+Las capas externas dependen de las internas, nunca al reves.
 
 ```mermaid
 flowchart LR
@@ -78,6 +80,31 @@ flowchart LR
     App --> Domain["Dominio"]
     Infra["Infraestructura"] -.->|"implementa"| Domain
     Infra --> App
+```
+
+### Separacion Cliente / Servidor
+
+```mermaid
+graph TB
+    subgraph Client["CLIENTE (Navegador)"]
+        direction LR
+        UI["useScheduleGenerator<br/>SubjectsView<br/>HorarioClient"] --> AOR["AcademicOfferRepository<br/>(interfaz dominio)"]
+        AOR --> Local["LocalAcademicOfferRepository<br/>(cache localStorage)"]
+        Local --> Remote["RemoteAcademicOfferRepository<br/>(fetch API)"]
+    end
+
+    subgraph Server["SERVIDOR (Next.js)"]
+        direction LR
+        Routes["API Routes<br/>/api/*"] --> GIL["globalInitialLoad()"]
+        GIL --> Factory["resolveAdapter(schoolSlug)"]
+        Factory --> Fmat["FmatAdapter<br/>(Excel → CanonicalCourseCSV)"]
+        Factory --> Gen["GenericCsvAdapter<br/>(CSV canonico)"]
+        Fmat --> CB["catalogBuilder.ts<br/>(funciones compartidas)"]
+        Gen --> CB
+        CB --> CS["catalogState<br/>(singleton en memoria)"]
+    end
+
+    Remote --> Routes
 ```
 
 ---
@@ -175,7 +202,7 @@ classDiagram
 | `Degree` | `src/domain/entities/Degree.ts` | Una carrera con su lista de materias |
 | `Schedule` | `src/domain/entities/Schedule.ts` | Un horario generado: combinacion de cursos compatibles |
 | `ScheduleGenerator` | `src/domain/entities/ScheduleGenerator.ts` | **Algoritmo core** que genera todas las combinaciones posibles de horarios sin conflictos |
-| `School` | `src/domain/entities/School.ts` | Escuela/facultad predefinida (FMAT, EDUCACION, etc.) |
+| `School` | `src/domain/entities/School.ts` | Escuela/facultad predefinida (FMAT, EDUCACION, ARQUITECTURA, PSICOLOGIA, CONTABILIDAD) |
 
 ### 2.2 Algoritmo de Generacion de Horarios
 
@@ -198,30 +225,63 @@ flowchart TD
 - Dos cursos son compatibles si todas sus sesiones son compatibles Y son de materias diferentes
 - Cada curso por si solo genera un horario valido
 
-### 2.3 Interfaces de Repositorio y Datasource
+### 2.3 Interfaces de Dominio
+
+#### AcademicOfferRepository (Cliente)
 
 ```mermaid
 classDiagram
-    class CatalogRepository {
+    class AcademicOfferRepository {
         <<interface>>
-        +loadCatalog(schoolSlug: string) CatalogSnapshotDto
+        +getDegrees() Promise~Degree[]~
+        +getSubjects() Promise~Subject[]~
+        +getProfessors() Promise~Professor[]~
+        +getCourses() Promise~Course[]~
     }
 
-    class CoursesRepository {
-        <<interface>>
-        +getAll() Course[]
-        +getCoursesByFilter(filter: Filter) Course[]
+    class LocalAcademicOfferRepository {
+        -remote: AcademicOfferRepository
+        -schoolSlug: string
+        +getDegrees() Promise~Degree[]~
+        +getSubjects() Promise~Subject[]~
+        +getProfessors() Promise~Professor[]~
+        +getCourses() Promise~Course[]~
     }
 
-    class CoursesDataSource {
-        <<interface>>
-        +getAll() Course[]
-        +getCoursesByFilter(filter: Filter) Course[]
+    class RemoteAcademicOfferRepository {
+        -schoolSlug: string
+        +getDegrees() Promise~Degree[]~
+        +getSubjects() Promise~Subject[]~
+        +getProfessors() Promise~Professor[]~
+        +getCourses() Promise~Course[]~
     }
 
-    CatalogRepository <|.. CatalogRepositoryImpl
-    CoursesRepository <|.. CoursesRepositoryImpl
-    CoursesDataSource <|.. CoursesCsvDatasource
+    AcademicOfferRepository <|.. LocalAcademicOfferRepository
+    AcademicOfferRepository <|.. RemoteAcademicOfferRepository
+    LocalAcademicOfferRepository --> AcademicOfferRepository : decora
+```
+
+`LocalAcademicOfferRepository` es un **decorator**: envuelve otro `AcademicOfferRepository`, cachea en in-memory + localStorage (con version key), delega al remoto en cache miss.
+
+#### SchoolDataAdapter (Servidor - Puerto)
+
+```mermaid
+classDiagram
+    class SchoolDataAdapter {
+        <<interface>>
+        +fetchCatalog() Promise~AcademicOfferDto~
+    }
+
+    class FmatAdapter {
+        +fetchCatalog() Promise~AcademicOfferDto~
+    }
+
+    class GenericCsvAdapter {
+        +fetchCatalog() Promise~AcademicOfferDto~
+    }
+
+    SchoolDataAdapter <|.. FmatAdapter
+    SchoolDataAdapter <|.. GenericCsvAdapter
 ```
 
 ---
@@ -312,7 +372,7 @@ classDiagram
     PivotFilter --> Pivot
 ```
 
-### Jerarquia de filtros
+### 3.2 Jerarquia de filtros
 
 1. **Pre-generacion** (filtran cursos antes de combinarlos):
    - `DegreeFilter`: cursos que pertenecen a la(s) carrera(s) seleccionada(s)
@@ -321,71 +381,124 @@ classDiagram
    - `PinnedSubjectFilter`: solo horarios que contienen TODAS las materias pineadas
    - `PivotFilter`: solo horarios que respetan los pivotes (profesor-materia)
 
+### 3.3 Puertos y DTOs
+
+| Archivo | Tipo | Proposito |
+|---------|------|-----------|
+| `application/ports/SchoolDataAdapter.ts` | Puerto (interfaz) | Contrato para adaptadores que leen datos de una escuela |
+| `application/dtos/AcademicOfferDto.ts` | DTO | `{ degrees, subjects, professors, courses }` — estructura de datos del catalogo |
+| `application/use_cases/initialLoad.ts` | Caso de uso | Orquesta la carga inicial: `resolveAdapter(schoolSlug)` + `LoadCatalogUseCase` + `catalogState` |
+
 ---
 
 ## 4. Capa de Infraestructura
 
-### 4.1 Componentes
+### 4.1 Componentes del Servidor
 
 ```mermaid
-graph LR
-    subgraph Server["Server-side"]
-        API["API Routes<br/>src/pages/api/"] --> GIL["globalInitialLoad()"]
-        GIL --> LCU["LoadCatalogUseCase"]
-        LCU --> CRI["CatalogRepositoryImpl"]
-        CRI --> GCA["GenericCsvAdapter"]
-        GCA --> FS["Sistema de Archivos<br/>public/data/{school}/"]
-        GCA --> CS["catalogState<br/>(singleton en memoria)"]
-    end
-
-    subgraph Client["Client-side"]
-        USG["useScheduleGenerator<br/>hook"] --> CCI["CatalogClientImpl"]
-        CCI --> DegDS["DegreesCsvDataSource"]
-        CCI --> SubDS["SubjectsCsvDataSource"]
-        CCI --> CouDS["CoursesCsvDatasource"]
-        DegDS --> API
-        SubDS --> API
-        CouDS --> API
-        DegDS --> LS["localStorage<br/>(cache con version)"]
-        SubDS --> LS
-        CouDS --> LS
-        DegDS --> Mapper["Mapper<br/>(JSON → Domain)"]
-        SubDS --> Mapper
-        CouDS --> Mapper
-    end
+flowchart TD
+    API["API Route<br/>ej. /api/degrees/all"] --> GIL["globalInitialLoad(schoolSlug)"]
+    GIL --> Factory{"resolveAdapter(schoolSlug)"}
+    Factory -->|"fmat"| Fmat["FmatAdapter<br/>ExcelJS → CanonicalCourseCSV"]
+    Factory -->|"otros"| Generic["GenericCsvAdapter<br/>csv-parser"]
+    Fmat --> CB["catalogBuilder.ts<br/>buildCatalogFromRows()"]
+    Generic --> CB
+    CB --> State["catalogState<br/>(singleton en memoria)"]
+    State --> API2["Retorna JSON a la API"]
 ```
 
-### 4.2 Estrategia de Caching
+**`resolveAdapter(schoolSlug)` es la fabrica** que decide que adapter concreto usar segun la escuela. Esta en `initialLoad.ts`.
+
+### 4.2 Componentes del Cliente
+
+```mermaid
+flowchart LR
+    Hook["useScheduleGenerator"] --> |"container.resolve()"| Local["LocalAcademicOfferRepository"]
+    Local --> |"cache miss"| Remote["RemoteAcademicOfferRepository"]
+    Remote --> |"fetch"| API["/api/{entity}/all?school={slug}"]
+    Local --> LS["localStorage<br/>(versionada)"]
+    Local --> Mapper["Mapper<br/>(JSON → Domain)"]
+    Remote --> Mapper
+```
+
+### 4.3 Adaptadores por Escuela
+
+```mermaid
+classDiagram
+    class SchoolDataAdapter {
+        <<interface>>
+        +fetchCatalog() AcademicOfferDto
+    }
+
+    class FmatAdapter {
+        -readExcelFile() CanonicalCourseCSV[]
+        -parseExcelFile(filePath) CanonicalCourseCSV[]
+        -normalizeRow(raw) CanonicalCourseCSV
+        +fetchCatalog() AcademicOfferDto
+        +clearCache()
+    }
+
+    class GenericCsvAdapter {
+        -readCsvFiles() CanonicalCourseCSV[]
+        -parseCsvFile(filePath) CanonicalCourseCSV[]
+        -normalizeRow(raw) CanonicalCourseCSV
+        +fetchCatalog() AcademicOfferDto
+        +clearCache()
+    }
+
+    class catalogBuilder {
+        <<functions>>
+        buildCatalogFromRows(rows) AcademicOfferDto
+        buildDegrees(rows) Degree[]
+        buildSubjects(rows) Subject[]
+        buildProfessors(rows) Professor[]
+        buildCourses(rows, subjects, professors) Course[]
+        attachRelations(rows, degrees, subjects, professors)
+        getSessions(row) Session[]
+        normalizeName(value) string
+    }
+
+    SchoolDataAdapter <|.. FmatAdapter
+    SchoolDataAdapter <|.. GenericCsvAdapter
+    FmatAdapter ..> catalogBuilder : usa
+    GenericCsvAdapter ..> catalogBuilder : usa
+```
+
+| Adapter | Fuente | Escuela(s) |
+|---------|--------|-----------|
+| `FmatAdapter` | Lee el Excel mas reciente de `public/data/`, parsea con ExcelJS, normaliza a `CanonicalCourseCSV[]` | `fmat` |
+| `GenericCsvAdapter` | Lee CSV canonico de `public/data/{schoolSlug}/`, parsea con `csv-parser`, normaliza a `CanonicalCourseCSV[]` | Cualquier escuela con CSV canonico |
+
+### 4.4 cache: Local + localStorage
 
 ```mermaid
 sequenceDiagram
-    participant Client as Cliente (Navegador)
-    participant DS as *CsvDataSource
-    participant API as API Route
-    participant State as catalogState (server)
-    participant FS as Sistema de Archivos
+    participant Hook as useScheduleGenerator
+    participant Local as LocalAcademicOfferRepository
+    participant LS as localStorage
+    participant Remote as RemoteAcademicOfferRepository
+    participant API as /api/degrees/all
 
-    Client->>DS: getAll()
-    DS->>DS: ¿Datos en localStorage? ¿Version coincide?
-    alt Cache valido
-        DS->>DS: Deserializar con Mapper
-        DS-->>Client: Retornar datos cacheados
-    else Sin cache o version desactualizada
-        DS->>DS: Limpiar localStorage
-        DS->>API: GET /api/{entity}/all?school={slug}
-        API->>State: ¿catalogState ya cargado?
-        alt No cargado o escuela diferente
-            State->>API: globalInitialLoad(school)
-            API->>FS: Leer archivos CSV/Excel
-            FS-->>API: Datos crudos
-            API->>State: Guardar en catalogState
-        end
-        State-->>API: Datos del catalogo
-        API-->>DS: JSON response
-        DS->>DS: Serializar con Mapper
-        DS->>DS: Guardar en localStorage + version
-        DS-->>Client: Retornar datos frescos
+    Hook->>Local: getDegrees()
+    Local->>Local: ¿cache en memoria?
+    alt cache in-memory valido
+        Local-->>Hook: Degree[]
     end
+    Local->>Local: getVersion() → /api/version
+    Local->>LS: leer clave versionada
+    alt cache localStorage valido
+        LS-->>Local: JSON crudo
+        Local->>Local: Mapper.toDegrees(JSON.parse(...))
+        Local-->>Hook: Degree[]
+    end
+    Local->>Remote: getDegrees()
+    Remote->>API: GET /api/degrees/all?school=fmat
+    API-->>Remote: JSON
+    Remote->>Remote: Mapper.toDegrees(json)
+    Remote-->>Local: Degree[]
+    Local->>LS: guardar JSON.stringify
+    Local->>Local: guardar en memoria
+    Local-->>Hook: Degree[]
 ```
 
 ---
@@ -424,66 +537,55 @@ graph TD
 
 ## 6. Flujo de Carga Inicial de Datos
 
-### 6.1 Secuencia completa (server-side)
+### 6.1 Secuencia completa (servidor)
 
 ```mermaid
 sequenceDiagram
     participant Browser as Navegador
-    participant Next as Next.js Server
     participant API as API Route
-    participant UC as LoadCatalogUseCase
-    participant Repo as CatalogRepositoryImpl
-    participant Adapter as GenericCsvAdapter
+    participant GIL as globalInitialLoad
+    participant Factory as resolveAdapter
+    participant Adapter as FmatAdapter
+    participant CB as catalogBuilder
+    participant State as catalogState
     participant FS as Disco (public/data/)
 
-    Browser->>Next: GET /generador?school=fmat
-    Next->>Next: SSR de la pagina
-    Browser->>API: GET /api/courses/all?school=fmat
-    API->>UC: globalInitialLoad("fmat")
-    UC->>Repo: loadCatalog("fmat")
-    Repo->>Adapter: new GenericCsvAdapter(School.FMAT)
-    Adapter->>FS: Leer archivos CSV en public/data/fmat/
-    FS-->>Adapter: Filas CSV crudas
-
-    Adapter->>Adapter: buildDegrees(rows)
-    Adapter->>Adapter: buildSubjects(rows)
-    Adapter->>Adapter: buildProfessors(rows)
-    Adapter->>Adapter: buildCourses(rows)
-    Adapter->>Adapter: attachRelations(rows)
-
-    Adapter-->>Repo: CatalogSnapshotDto
-    Repo-->>UC: CatalogSnapshotDto
-    UC->>UC: catalogState.set(snapshot)
-    UC-->>API: OK
-    API-->>Browser: Course[] JSON
-
-    Note over Browser,FS: Datos cacheados en catalogState (server)<br/>y localStorage (cliente) para siguientes requests
+    Browser->>API: GET /api/degrees/all?school=fmat
+    API->>GIL: globalInitialLoad("fmat")
+    GIL->>Factory: resolveAdapter("fmat")
+    Factory-->>GIL: new FmatAdapter("public/data")
+    GIL->>Adapter: fetchCatalog()
+    Adapter->>FS: Leer Excel mas reciente
+    FS-->>Adapter: Filas Excel (ExcelJS)
+    Adapter->>Adapter: normalizeRow() → CanonicalCourseCSV[]
+    Adapter->>CB: buildCatalogFromRows(rows)
+    CB-->>Adapter: AcademicOfferDto
+    Adapter-->>GIL: AcademicOfferDto
+    GIL->>State: catalogState.degrees = snapshot.degrees, etc.
+    GIL-->>API: OK
+    API-->>Browser: Degree[] JSON
 ```
 
-### 6.2 Adaptador CSV a Entidades de Dominio
+### 6.2 Pipeline de normalizacion
 
 ```mermaid
 flowchart TD
-    CSV["Archivos CSV/Excel<br/>public/data/{school}/"] --> Parse["csv-parser / ExcelJS<br/>Parseo de filas"]
-    Parse --> Norm["normalizeRow()<br/>Limpieza de campos"]
-    Norm --> Rows["CanonicalCourseCSV[]"]
+    File["Archivo fuente<br/>Excel (.xlsx) o CSV"] --> Parse["Parseo<br/>ExcelJS o csv-parser"]
+    Parse --> Raw["Filas crudas<br/>Record<string, string>"]
+    Raw --> Norm["normalizeRow()<br/>Fuzzy match de columnas<br/>→ CanonicalCourseCSV[]"]
+    Norm --> CB["catalogBuilder.ts<br/>buildCatalogFromRows()"]
 
-    Rows --> BDeg["buildDegrees()"]
-    Rows --> BSub["buildSubjects()"]
-    Rows --> BProf["buildProfessors()"]
-    Rows --> BCou["buildCourses()"]
+    CB --> BDeg["buildDegrees()"]
+    CB --> BSub["buildSubjects()"]
+    CB --> BProf["buildProfessors()"]
+    CB --> BCou["buildCourses()"]
+    CB --> AR["attachRelations()"]
 
-    BDeg --> Degrees["Degree[]"]
-    BSub --> Subjects["Subject[]"]
-    BProf --> Professors["Professor[]"]
-    BCou --> Courses["Course[]"]
-
-    Degrees --> AR["attachRelations()"]
-    Subjects --> AR
-    Professors --> AR
-    Courses --> AR
-
-    AR --> DTO["CatalogSnapshotDto<br/>{degrees, subjects, professors, courses}"]
+    BDeg --> DTO["AcademicOfferDto<br/>{degrees, subjects, professors, courses}"]
+    BSub --> DTO
+    BProf --> DTO
+    BCou --> DTO
+    AR --> DTO
 ```
 
 ---
@@ -496,17 +598,23 @@ flowchart TD
 sequenceDiagram
     participant UI as GeneratorPage
     participant Hook as useScheduleGenerator
-    participant SUC as ScheduleUseCase
-    participant Cat as CatalogClientImpl
+    participant Repo as AcademicOfferRepository
+    participant Local as LocalAcademicOfferRepository
+    participant Remote as RemoteAcademicOfferRepository
     participant API as API Routes
+    participant SUC as ScheduleUseCase
     participant Gen as ScheduleGenerator
     participant PF as PostGenerationFilters
 
     UI->>Hook: useScheduleGenerator("fmat")
-    Hook->>Cat: getDegrees(), getSubjects()
-    Cat->>API: GET /api/degrees/all, /api/subjects/all
-    API-->>Cat: Degree[], Subject[]
-    Cat-->>Hook: Datos del catalogo
+    Hook->>Hook: crear repo via container
+
+    Hook->>Repo: getDegrees(), getSubjects()
+    Repo->>Local: (decorator cache)
+    Local->>Remote: (si no hay cache)
+    Remote->>API: GET /api/degrees/all?school=fmat
+    API-->>Remote: Degree[], Subject[]
+    Remote-->>Hook: datos del catalogo
 
     Hook->>SUC: buildInitialCategories(degrees, subjects)
     SUC-->>Hook: Category[] iniciales
@@ -515,27 +623,24 @@ sequenceDiagram
 
     UI->>Hook: handleCategoryClick(updatedCategories)
     Hook->>SUC: cleanOrphanedState(categories, pivots, pinnedSubjects)
-    SUC-->>Hook: Estado limpiado (sin huerfanos)
+    SUC-->>Hook: Estado limpiado
 
     Hook->>Hook: generar schedules
 
-    Hook->>Cat: getCourses()
-    Cat-->>Hook: Course[] (todos los cursos de la escuela)
+    Hook->>Repo: getCourses()
+    Repo-->>Hook: Course[] (todos los cursos)
 
     Hook->>Hook: Aplicar course filters
-    Note over Hook: DegreeFilter → SubjectFilter → cursos filtrados
+    Note over Hook: DegreeFilter → SubjectFilter
 
     Hook->>Gen: generateSchedules(filteredCourses)
     Gen->>Gen: Algoritmo combinatorio
-    Gen-->>Hook: Schedule[] (todas las combinaciones)
+    Gen-->>Hook: Schedule[]
 
-    Hook->>PF: PinnedSubjectFilter.apply(schedules)
-    PF-->>Hook: Schedule[] (solo con materias pineadas)
+    Hook->>PF: PinnedSubjectFilter + PivotFilter
+    PF-->>Hook: Schedule[] filtrados
 
-    Hook->>PF: PivotFilter.apply(schedules)
-    PF-->>Hook: Schedule[] (solo con pivotes respetados)
-
-    Hook-->>UI: generatedSchedules, schedulesToShow, ...
+    Hook-->>UI: schedulesToShow, currentCategories, ...
     UI->>UI: Renderizar calendar + schedule cards
 ```
 
@@ -617,21 +722,25 @@ sequenceDiagram
 
 | Ruta | Metodo | Parametro | Retorna |
 |------|--------|-----------|---------|
-| `/api/catalog` | GET | `?school={slug}` | `CatalogSnapshotDto` completo |
+| `/api/catalog` | GET | `?school={slug}` | `AcademicOfferDto` completo |
 | `/api/courses/all` | GET | `?school={slug}` | `Course[]` |
 | `/api/degrees/all` | GET | `?school={slug}` | `Degree[]` |
 | `/api/professors/all` | GET | `?school={slug}` | `Professor[]` |
 | `/api/subjects/all` | GET | `?school={slug}` | `Subject[]` |
 | `/api/version` | GET | - | Version string (cache busting) |
 
-### 9.2 Patron comun de API Route
+### 9.2 Flujo de una API Route
 
 ```mermaid
 flowchart TD
     Req["GET /api/entity/all?school=fmat"] --> Check{"catalogState.schoolSlug<br/>=== 'fmat' ?"}
-    Check -->|"No"| Load["globalInitialLoad('fmat')"]
-    Load --> Read["GenericCsvAdapter → CSV → Domain"]
-    Read --> Set["catalogState.set(snapshot)"]
+    Check -->|"No"| GIL["globalInitialLoad('fmat')"]
+    GIL --> Factory["resolveAdapter('fmat')"]
+    Factory -->|"fmat"| Fmat["FmatAdapter → ExcelJS"]
+    Factory -->|"otros"| Gen["GenericCsvAdapter → CSV"]
+    Fmat --> Build["catalogBuilder → buildCatalogFromRows()"]
+    Gen --> Build
+    Build --> Set["catalogState ← snapshot"]
     Set --> Return
     Check -->|"Si"| Return["return catalogState.entity[]"]
 ```
@@ -683,38 +792,44 @@ sequenceDiagram
 ```
 src/
 ├── app/                          # Next.js App Router
-│   ├── components/               # 15+ componentes reutilizables
-│   ├── widgets/                  # 3 widgets principales (Subjects, Schedules, Current)
+│   ├── components/               # Calendar, NavBar, FilterSelector, CategorySelector, SideBar,
+│   │                             #   SliderFilter, Pagination, GoogleCalendarButton, ICSButton,
+│   │                             #   ConfirmationModal, AdBanner, AdSense, Particles, etc.
+│   ├── widgets/                  # CurrentSchedule, SchedulesView, SubjectsView
 │   ├── hooks/                    # useScheduleGenerator, useGoogleAuth
 │   ├── generador/                # Pagina principal del generador
-│   │   └── horario/              # Vista de horario compartido
+│   │   └── horario/              # Vista de horario compartido (HorarioClient)
 │   ├── contact/                  # Pagina del equipo
 │   ├── faq/                      # FAQ
 │   ├── motivation/               # Motivacion del proyecto
 │   └── layout.tsx                # Layout raiz
 │
 ├── application/
-│   ├── filters/                  # Sistema de filtros (Category, Filter, Pivot)
-│   ├── ports/                    # Puertos (CatalogClientPort, SchoolDataAdapter)
-│   ├── dtos/                     # CatalogSnapshotDto
+│   ├── filters/                  # Category, CourseFilter, DegreeCategory, SubjectCategory,
+│   │                             #   DegreeFilter, SubjectFilter, DynamicCategory,
+│   │                             #   Pivot, PivotFilter, PinnedSubjectFilter, PostGenerationFilter
+│   ├── ports/                    # SchoolDataAdapter (puerto servidor)
+│   ├── dtos/                     # AcademicOfferDto
 │   └── use_cases/                # globalInitialLoad
 │
 ├── domain/
-│   ├── entities/                 # 12 entidades de dominio
-│   ├── repositories/             # 5 interfaces de repositorio
-│   ├── datasources/              # 4 interfaces de datasource
+│   ├── entities/                 # Course, Subject, Professor, Session, Degree,
+│   │                             #   Schedule, ScheduleGenerator, School
+│   ├── repositories/             # AcademicOfferRepository (interfaz unica)
 │   └── use_cases/                # LoadCatalogUseCase, ScheduleUseCase
 │
 ├── infrastructure/
-│   ├── adapters/                 # GenericCsvAdapter
-│   ├── datasource/               # Impls cliente (fetch+localStorage) y servidor (Excel)
-│   ├── repositories/             # 5 implementaciones de repositorio
-│   ├── mappers/                  # Mapper (JSON↔Domain), FmatCourseMapper, FmatSubjectMapper
-│   ├── helpers/                  # normalizeName
-│   ├── models/                   # CanonicalCourseCSV, CourseCSV, FilterModel
-│   └── state/                    # catalogState (singleton)
+│   ├── adapters/                 # FmatAdapter, GenericCsvAdapter
+│   │   └── helpers/              # catalogBuilder.ts (funciones compartidas)
+│   ├── datasource/               # apiFetch.ts (fetch wrapper)
+│   ├── repositories/             # RemoteAcademicOfferRepository, LocalAcademicOfferRepository
+│   ├── mappers/                  # Mapper.ts (JSON ↔ Domain entities)
+│   ├── models/                   # CanonicalCourseCSV.ts, FilterModel.ts
+│   ├── state/                    # catalogState.ts (singleton en memoria)
+│   └── container.ts              # Contenedor DI (register/resolve)
 │
-├── pages/api/                    # 6 API routes (Pages Router)
+├── pages/api/                    # catalog/, courses/all, degrees/all, professors/all,
+│                                 #   subjects/all, version (6 endpoints)
 ├── utils/                        # supabaseClient, EnumArray
 └── Test/                         # Tests unitarios
 ```
@@ -732,7 +847,7 @@ C4Context
     System_Boundary(kiin, "Kiin Platform") {
         Container(webapp, "Web App", "Next.js 15, React, Tailwind", "Interfaz de usuario para generar horarios")
         Container(api, "API Routes", "Next.js Pages API", "Endpoints REST para datos del catalogo")
-        ContainerDb(fs, "Archivos CSV/Excel", "public/data/", "Datos de cursos por escuela")
+        ContainerDb(fs, "Archivos Excel/CSV", "public/data/", "Datos de cursos por escuela")
     }
 
     System_Ext(supabase, "Supabase", "Autenticacion Google OAuth")
@@ -740,7 +855,7 @@ C4Context
 
     Rel(estudiante, "Genera horarios en", webapp, "HTTPS")
     Rel(webapp, "Consulta datos via", api, "HTTP REST")
-    Rel(api, "Lee archivos de", fs, "Filesystem")
+    Rel(api, "Lee archivos con", fs, "Filesystem")
     Rel(webapp, "Autentica con", supabase, "OAuth 2.0")
     Rel(webapp, "Exporta eventos a", gcalendar, "Google API")
 ```
@@ -751,12 +866,13 @@ C4Context
 
 | Patron | Donde se usa | Proposito |
 |--------|-------------|-----------|
-| **Repository** | `domain/repositories/` → `infrastructure/repositories/` | Desacoplar dominio de la persistencia |
-| **Adapter** | `GenericCsvAdapter` | Adaptar datos CSV a entidades de dominio |
+| **Repository** | `domain/repositories/AcademicOfferRepository.ts` → `infrastructure/repositories/Remote*`, `Local*` | Desacoplar logica de negocio del origen de datos (API vs localStorage) |
+| **Port/Adapter (Hexagonal)** | `application/ports/SchoolDataAdapter.ts` → `infrastructure/adapters/FmatAdapter`, `GenericCsvAdapter` | Cada escuela puede tener su propio formato (Excel, CSV, PDF). El puerto no cambia. |
 | **Strategy** | `Filter`, `CourseFilter`, `PostGenerationFilter` | Diferentes estrategias de filtrado intercambiables |
 | **Composite** | `Category`, `DegreeCategory`, `SubjectCategory` | Jerarquia de categorias de filtro en UI |
+| **Decorator** | `LocalAcademicOfferRepository` envuelve `RemoteAcademicOfferRepository` | Agrega cache (in-memory + localStorage) sin modificar el remoto |
 | **Chain of Responsibility** | Pipeline de filtros pre/post generacion | Aplicar filtros en secuencia |
+| **Factory** | `resolveAdapter(schoolSlug)` en `initialLoad.ts` | Selecciona el adapter concreto segun la escuela |
 | **Singleton** | `catalogState` | Cache en memoria del servidor |
-| **Dependency Injection** | Constructores de repositorios/datasources | Inversion de control |
+| **DI Container** | `container.ts` | `register()`/`resolve()` para inyeccion de dependencias en cliente |
 | **Observer** | React state + hooks | Reactividad de la UI |
-| **Port/Adapter (Hexagonal)** | `application/ports/` | Puertos entre capas de aplicacion e infraestructura |

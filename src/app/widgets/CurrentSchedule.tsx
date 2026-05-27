@@ -14,11 +14,12 @@ type Props = {
     label: string;
     showConflicts?: boolean;
     setShowConflicts?: (show: boolean) => void;
+    schoolSlug?: string;
 }
 
 
 
-function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflicts: externalShowConflicts, setShowConflicts: externalSetShowConflicts }: Props) {
+function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflicts: externalShowConflicts, setShowConflicts: externalSetShowConflicts, schoolSlug }: Props) {
 
     //Prueba de google
     const [start] = useState(new Date('2026-01-12T08:00:00'));
@@ -82,7 +83,7 @@ function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflict
                 <div className='flex flex-row gap-2 items-center'>
                     <h2 className="text-center text-lg p-2 font-bold bg-black rounded-full text-white dark:bg-white dark:text-black">{label}</h2>
 
-                    <ShareLinkButton schedule={schedule} setShowShareLink={setShowShareLink} showShareLink={showShareLink} />
+                    <ShareLinkButton schedule={schedule} setShowShareLink={setShowShareLink} showShareLink={showShareLink} schoolSlug={schoolSlug} />
 
                     <div className="relative" ref={exportMenuRef}>
                         <button
@@ -280,6 +281,7 @@ type ShareLinkButtonProps = {
     schedule: Schedule;
     setShowShareLink: (link: string | null) => void;
     showShareLink: string | null;
+    schoolSlug?: string;
 }
 
 function CourseCard(course: Course, colors: string[], pivots: Pivot[], pinnedSubjects: number[]) {
@@ -345,7 +347,7 @@ function CourseCard(course: Course, colors: string[], pivots: Pivot[], pinnedSub
     </div>;
 }
 
-function ShareLinkButton({ schedule, setShowShareLink, showShareLink }: ShareLinkButtonProps) {
+function ShareLinkButton({ schedule, setShowShareLink, showShareLink, schoolSlug }: ShareLinkButtonProps) {
     const [isCopied, setIsCopied] = useState(false);
     return (
         <>
@@ -353,7 +355,13 @@ function ShareLinkButton({ schedule, setShowShareLink, showShareLink }: ShareLin
             <button
                 onClick={async () => {
                     const coursesIds = schedule.courses.map(course => course.id);
-                    const shareLink = `${window.location.href}/horario?ids=${coursesIds.toString()}`;
+                    const baseUrl = window.location.origin + "/generador/horario";
+                    const params = new URLSearchParams();
+                    params.set("ids", coursesIds.toString());
+                    if (schoolSlug) {
+                        params.set("school", schoolSlug);
+                    }
+                    const shareLink = `${baseUrl}?${params.toString()}`;
                     setShowShareLink(shareLink);
                 }}
                 className="bg-blue-700  p-2 rounded-full flex items-center justify-center"

@@ -13,6 +13,7 @@ import React, { useEffect, useState } from 'react';
 export default function HorarioClient() {
   const searchParams = useSearchParams();
   const idsParam = searchParams?.get('ids'); // "1,23,64,98"
+  const schoolSlug = searchParams?.get("school") || "fmat";
   const ids = React.useMemo(() => idsParam ? idsParam.split(',').map(Number) : [], [idsParam]);
 
   const [courses, setCourses] = React.useState<Course[]>([]);
@@ -34,8 +35,8 @@ export default function HorarioClient() {
 
   React.useEffect(() => {
     const repo = new LocalAcademicOfferRepository(
-      new RemoteAcademicOfferRepository("fmat"),
-      "fmat"
+      new RemoteAcademicOfferRepository(schoolSlug),
+      schoolSlug
     );
     repo.getCourses().then(courses => {
       const filteredCourses = courses.filter(course => ids.includes(course.id));
@@ -43,7 +44,7 @@ export default function HorarioClient() {
     }).catch(error => {
       console.error("Error al obtener los cursos:", error);
     });
-  }, [ids]);
+  }, [ids, schoolSlug]);
 
   const schedule = new Schedule(99);
   courses?.forEach(course => schedule.addCourse(course));
@@ -55,7 +56,7 @@ export default function HorarioClient() {
         <Calendar courses={courses} dayFormat={dayFormat} />
       </div>
       <div className="w-full md:w-[30%] mt-6 md:mt-0 md:h-full">
-        <CurrentSchedule schedule={schedule} label={'Horario'} />
+        <CurrentSchedule schedule={schedule} label={'Horario'} schoolSlug={schoolSlug} />
       </div>
     </div>
   );

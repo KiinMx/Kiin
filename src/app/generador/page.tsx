@@ -153,6 +153,7 @@ function GeneratorPageInner() {
                                 label={`Horario ${page + 1}/${schedulesToShow.length}`}
                                 showConflicts={showConflicts}
                                 setShowConflicts={setShowConflicts}
+                                schoolSlug={schoolSlug}
                             />
                         </div>
                     </div>
@@ -189,6 +190,7 @@ function GeneratorPageInner() {
                                 label={`Horario ${page + 1}/${schedulesToShow.length}`}
                                 showConflicts={showConflicts}
                                 setShowConflicts={setShowConflicts}
+                                schoolSlug={schoolSlug}
                             />
                         </div>
                     </>

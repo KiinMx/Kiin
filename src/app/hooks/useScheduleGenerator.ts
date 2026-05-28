@@ -12,6 +12,7 @@ import { LocalAcademicOfferRepository } from "@/infrastructure/repositories/Loca
 import { RemoteAcademicOfferRepository } from "@/infrastructure/repositories/RemoteAcademicOfferRepository";
 import { container } from "@/infrastructure/container";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CompareProfessorsUseCase } from "@/domain/use_cases/CompareProfessorsUseCase";
 
 interface NotificationState {
     message: string;
@@ -152,6 +153,12 @@ export function useScheduleGenerator(schoolSlug: string): UseScheduleGeneratorRe
             setIsFilterCoursesEmpty(false);
         }
     }, [isFilterCoursesEmpty]);
+
+    const compareProfessors = useCallback(async (subjectId: number) => {
+    const allCourses = await repository.getCourses();
+    const useCase = new CompareProfessorsUseCase();
+    return useCase.execute(subjectId, allCourses);
+    }, [repository]);
 
     return {
         generatedSchedules,

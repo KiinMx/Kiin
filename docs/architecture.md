@@ -20,7 +20,10 @@ Kiin (del maya "tiempo") es una aplicacion web para generar horarios academicos.
 10. [Exportacion a Google Calendar](#10-exportacion-a-google-calendar)
 11. [Estructura de Archivos](#11-estructura-de-archivos)
 12. [Diagrama C4](#12-diagrama-de-componentes-c4---nivel-2)
-13. [Patrones de Diseno](#13-patrones-de-diseno-utilizados)
+13. [Patrones de Diseno y SOLID](#13-patrones-de-diseno-y-solid)
+    - [13.1 Patrones de Diseno](#131-patrones-de-diseno)
+    - [13.2 Principios SOLID](#132-principios-solid)
+    - [13.3 Mapa de dependencias](#133-mapa-de-dependencias-solid-en-la-practica)
 
 ---
 
@@ -119,7 +122,7 @@ classDiagram
         +id: number
         +subject: Subject
         +professor: Professor
-        +group: number
+        +group: string
         +modality: string
         +weekHours: number
         +sessions: Session[]
@@ -400,8 +403,12 @@ flowchart TD
     API["API Route<br/>ej. /api/degrees/all"] --> GIL["globalInitialLoad(schoolSlug)"]
     GIL --> Factory{"resolveAdapter(schoolSlug)"}
     Factory -->|"fmat"| Fmat["FmatAdapter<br/>ExcelJS → CanonicalCourseCSV"]
+    Factory -->|"psicologia"| Psi["PsicologiaAdapter<br/>CSV canonico"]
+    Factory -->|"arquitectura"| Arq["ArquitecturaAdapter<br/>CSV canonico"]
     Factory -->|"otros"| Generic["GenericCsvAdapter<br/>csv-parser"]
     Fmat --> CB["catalogBuilder.ts<br/>buildCatalogFromRows()"]
+    Psi --> CB
+    Arq --> CB
     Generic --> CB
     CB --> State["catalogState<br/>(singleton en memoria)"]
     State --> API2["Retorna JSON a la API"]
@@ -438,6 +445,14 @@ classDiagram
         +clearCache()
     }
 
+    class PsicologiaAdapter {
+        +fetchCatalog() AcademicOfferDto
+    }
+
+    class ArquitecturaAdapter {
+        +fetchCatalog() AcademicOfferDto
+    }
+
     class GenericCsvAdapter {
         -readCsvFiles() CanonicalCourseCSV[]
         -parseCsvFile(filePath) CanonicalCourseCSV[]
@@ -459,15 +474,21 @@ classDiagram
     }
 
     SchoolDataAdapter <|.. FmatAdapter
+    SchoolDataAdapter <|.. PsicologiaAdapter
+    SchoolDataAdapter <|.. ArquitecturaAdapter
     SchoolDataAdapter <|.. GenericCsvAdapter
+    GenericCsvAdapter <|-- PsicologiaAdapter
+    GenericCsvAdapter <|-- ArquitecturaAdapter
     FmatAdapter ..> catalogBuilder : usa
     GenericCsvAdapter ..> catalogBuilder : usa
 ```
 
 | Adapter | Fuente | Escuela(s) |
 |---------|--------|-----------|
-| `FmatAdapter` | Lee el Excel mas reciente de `public/data/`, parsea con ExcelJS, normaliza a `CanonicalCourseCSV[]` | `fmat` |
-| `GenericCsvAdapter` | Lee CSV canonico de `public/data/{schoolSlug}/`, parsea con `csv-parser`, normaliza a `CanonicalCourseCSV[]` | Cualquier escuela con CSV canonico |
+| `FmatAdapter` | Lee el Excel mas reciente de `public/data/fmat/`, parsea con ExcelJS, normaliza a `CanonicalCourseCSV[]` | `fmat` |
+| `PsicologiaAdapter` | Extiende `GenericCsvAdapter`, lee CSV canonico de `public/data/psicologia/` | `psicologia` |
+| `ArquitecturaAdapter` | Extiende `GenericCsvAdapter`, lee CSV canonico de `public/data/arquitectura/` | `arquitectura` |
+| `GenericCsvAdapter` | Lee CSV canonico de `public/data/{schoolSlug}/`, parsea con `csv-parser` | Cualquier otra escuela |
 
 ### 4.4 cache: Local + localStorage
 
@@ -737,8 +758,12 @@ flowchart TD
     Check -->|"No"| GIL["globalInitialLoad('fmat')"]
     GIL --> Factory["resolveAdapter('fmat')"]
     Factory -->|"fmat"| Fmat["FmatAdapter → ExcelJS"]
+    Factory -->|"psicologia"| Psi["PsicologiaAdapter → CSV canonico"]
+    Factory -->|"arquitectura"| Arq["ArquitecturaAdapter → CSV canonico"]
     Factory -->|"otros"| Gen["GenericCsvAdapter → CSV"]
     Fmat --> Build["catalogBuilder → buildCatalogFromRows()"]
+    Psi --> Build
+    Arq --> Build
     Gen --> Build
     Build --> Set["catalogState ← snapshot"]
     Set --> Return
@@ -819,8 +844,8 @@ src/
 │   └── use_cases/                # LoadCatalogUseCase, ScheduleUseCase
 │
 ├── infrastructure/
-│   ├── adapters/                 # FmatAdapter, GenericCsvAdapter
-│   │   └── helpers/              # catalogBuilder.ts (funciones compartidas)
+│   ├── adapters/                 # FmatAdapter, PsicologiaAdapter, ArquitecturaAdapter, GenericCsvAdapter
+│   │   └── helpers/              # catalogBuilder.ts (funciones compartidas de construccion de entidades)
 │   ├── datasource/               # apiFetch.ts (fetch wrapper)
 │   ├── repositories/             # RemoteAcademicOfferRepository, LocalAcademicOfferRepository
 │   ├── mappers/                  # Mapper.ts (JSON ↔ Domain entities)
@@ -862,12 +887,14 @@ C4Context
 
 ---
 
-## 13. Patrones de Diseno Utilizados
+## 13. Patrones de Diseno y SOLID
+
+### 13.1 Patrones de Diseno
 
 | Patron | Donde se usa | Proposito |
 |--------|-------------|-----------|
 | **Repository** | `domain/repositories/AcademicOfferRepository.ts` → `infrastructure/repositories/Remote*`, `Local*` | Desacoplar logica de negocio del origen de datos (API vs localStorage) |
-| **Port/Adapter (Hexagonal)** | `application/ports/SchoolDataAdapter.ts` → `infrastructure/adapters/FmatAdapter`, `GenericCsvAdapter` | Cada escuela puede tener su propio formato (Excel, CSV, PDF). El puerto no cambia. |
+| **Port/Adapter (Hexagonal)** | `application/ports/SchoolDataAdapter.ts` → `infrastructure/adapters/FmatAdapter`, `PsicologiaAdapter`, `ArquitecturaAdapter`, `GenericCsvAdapter` | Cada escuela puede tener su propio formato (Excel, CSV). El puerto no cambia. |
 | **Strategy** | `Filter`, `CourseFilter`, `PostGenerationFilter` | Diferentes estrategias de filtrado intercambiables |
 | **Composite** | `Category`, `DegreeCategory`, `SubjectCategory` | Jerarquia de categorias de filtro en UI |
 | **Decorator** | `LocalAcademicOfferRepository` envuelve `RemoteAcademicOfferRepository` | Agrega cache (in-memory + localStorage) sin modificar el remoto |
@@ -875,4 +902,90 @@ C4Context
 | **Factory** | `resolveAdapter(schoolSlug)` en `initialLoad.ts` | Selecciona el adapter concreto segun la escuela |
 | **Singleton** | `catalogState` | Cache en memoria del servidor |
 | **DI Container** | `container.ts` | `register()`/`resolve()` para inyeccion de dependencias en cliente |
+| **Template Method** | `GenericCsvAdapter` → `PsicologiaAdapter`, `ArquitecturaAdapter` extienden y heredan logica de lectura CSV | Reutilizacion sin duplicar codigo |
+| **Facade** | `catalogBuilder.ts` expone `buildCatalogFromRows()` que orquesta `buildDegrees` + `buildSubjects` + `buildProfessors` + `buildCourses` + `attachRelations` | Una interfaz simple para un subsistema complejo |
 | **Observer** | React state + hooks | Reactividad de la UI |
+
+### 13.2 Principios SOLID
+
+#### S — Single Responsibility (Responsabilidad Unica)
+
+Cada clase tiene un solo motivo para cambiar:
+
+| Clase | Responsabilidad |
+|-------|----------------|
+| `Course`, `Subject`, `Professor`, `Session`, `Degree`, `Schedule` | Representan un concepto del dominio. No saben de persistencia, UI, ni parsing |
+| `ScheduleGenerator` | Solo genera combinaciones de horarios. No filtra, no cachea, no persiste |
+| `FmatAdapter` | Solo lee Excel de FMAT y lo convierte a entidades. No sabe de otras escuelas |
+| `PsicologiaAdapter` | Extiende `GenericCsvAdapter`, solo configura la escuela |
+| `RemoteAcademicOfferRepository` | Solo hace fetch a la API. No cachea |
+| `LocalAcademicOfferRepository` | Solo cachea. No hace fetch |
+| `Mapper` | Solo convierte JSON ↔ entidades. No hace fetch ni parsea CSV |
+| `catalogBuilder.ts` | Solo construye entidades desde `CanonicalCourseCSV[]`. No lee archivos |
+| `FilterSelector` | Solo renderiza la UI de filtros. No contiene logica de filtrado |
+| `globalInitialLoad` | Solo orquesta la carga inicial. No parsea archivos ni maneja HTTP |
+
+#### O — Open/Closed (Abierto a extension, Cerrado a modificacion)
+
+- **`SchoolDataAdapter`**: Agregar una nueva escuela (ej. `ContabilidadAdapter`) no requiere modificar el puerto ni los adapters existentes. Solo crear una clase nueva que implemente la interfaz y registrarla en `resolveAdapter()`.
+- **`AcademicOfferRepository`**: Agregar un nuevo origen de datos (ej. `IndexedDbRepository`) no requiere modificar `Local` ni `Remote`. Solo crear una nueva implementacion.
+- **`Category` / `CourseFilter` / `PostGenerationFilter`**: Agregar un nuevo tipo de filtro (ej. `ModalityFilter`) no modifica los existentes. Solo implementar la interfaz.
+- **`SubjectCategory`** extiende `DynamicCategory` sin modificar su codigo base.
+
+#### L — Liskov Substitution (Sustitucion de Liskov)
+
+- **`PsicologiaAdapter` extends `GenericCsvAdapter`**: Cualquier codigo que espere un `GenericCsvAdapter` puede recibir un `PsicologiaAdapter` sin romperse. El comportamiento es identico (solo cambia el constructor).
+- **`ArquitecturaAdapter` extends `GenericCsvAdapter`**: Mismo principio.
+- **`LocalAcademicOfferRepository` implements `AcademicOfferRepository`**: El hook `useScheduleGenerator` funciona identico si se le inyecta `Local`, `Remote`, o cualquier otra implementacion.
+- **`DegreeCategory` implements `Category`**: El `FilterSelector` no distingue entre categorias de carrera o semestre.
+
+#### I — Interface Segregation (Segregacion de Interfaces)
+
+- **`AcademicOfferRepository`** tiene 4 metodos especificos (`getDegrees`, `getSubjects`, `getProfessors`, `getCourses`). No obliga a implementar metodos innecesarios. Si una implementacion solo provee cursos, implementa solo `getCourses` (aunque actualmente todas implementan los 4, la interfaz no fuerza metodos que no se usan).
+- **`Category` vs `CourseFilter` vs `PostGenerationFilter`**: Interfaces separadas y minimas. Una categoria no esta obligada a implementar filtros post-generacion.
+- **`Filter`** solo expone `filter(courses)`. No acopla conceptos de UI ni de cache.
+
+#### D — Dependency Inversion (Inversion de Dependencias)
+
+Este es el principio mas presente en la arquitectura:
+
+```
+Capa Web → Application → Domain ← Infraestructura
+                           ↑
+                   (todas las flechas apuntan hacia aqui)
+```
+
+- **El dominio NO depende de infraestructura**: `Course`, `ScheduleGenerator`, `ScheduleUseCase` no importan nada de `infrastructure/`.
+- **El dominio define contratos**: `AcademicOfferRepository` (interfaz en domain) es implementada por `Remote*` y `Local*` (en infraestructura).
+- **Puertos en capa de aplicacion**: `SchoolDataAdapter` (interfaz en `application/ports/`) es implementada por `FmatAdapter`, `GenericCsvAdapter`, etc. (en `infrastructure/adapters/`).
+- **Inyeccion por constructor**: `LoadCatalogUseCase` recibe `SchoolDataAdapter` por constructor, no instancia nada concreto.
+- **Contenedor DI**: `container.ts` en infraestructura resuelve las dependencias concretas. Los consumidores (`useScheduleGenerator`) piden por interfaz, no por clase.
+- **Factory `resolveAdapter()`**: El API no sabe que adapter se usa para cada escuela. La fabrica encapsula esa decision.
+
+### 13.3 Mapa de dependencias (SOLID en la practica)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ DOMAIN (no depende de nadie)                                │
+│  entities/   → Course, Subject, Professor, ...              │
+│  repositories/ → AcademicOfferRepository (I)                │
+│  use_cases/  → ScheduleUseCase, LoadCatalogUseCase          │
+└────────────────────────┬────────────────────────────────────┘
+                         │ implementa (DIP)
+┌────────────────────────▼────────────────────────────────────┐
+│ APPLICATION (depende de domain)                             │
+│  filters/    → Category (I), CourseFilter (I), ...          │
+│  ports/      → SchoolDataAdapter (I)                        │
+│  dtos/       → AcademicOfferDto                             │
+└────────────────────────┬────────────────────────────────────┘
+                         │ implementa (DIP)
+┌────────────────────────▼────────────────────────────────────┐
+│ INFRASTRUCTURE (depende de domain + application)            │
+│  adapters/   → FmatAdapter, PsicologiaAdapter, ...         │
+│  repositories/ → Remote*, Local* (impl de repo)             │
+│  container.ts → DI                                          │
+│  mappers/    → Mapper                                       │
+│  state/      → catalogState                                 │
+└─────────────────────────────────────────────────────────────┘
+```
+

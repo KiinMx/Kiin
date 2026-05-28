@@ -16,7 +16,7 @@ describe("ScheduleUseCase", () => {
 
     const categories = useCase.buildInitialCategories(degrees, subjects, 3);
 
-    expect(categories.length).toBe(4); // 1 degree + 3 semesters
+    expect(categories.length).toBe(5); // 1 carrera + 3 semestres + 1 sin semestre
     // first should be DegreeCategory (title 'Carrera')
     expect(categories[0].title).toBe("Carrera");
     expect(categories[1]).toBeInstanceOf(SubjectCategory);

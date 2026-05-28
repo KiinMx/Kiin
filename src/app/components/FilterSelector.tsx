@@ -1,9 +1,9 @@
 "use client"
 import CategorySelector from '@/app/components/CategorySelector';
 import ConfirmationModal from './ConfirmationModal';
-import Category from '@/domain/entities/Category';
-import DegreeCategory from '@/domain/entities/DegreeCategory';
-import SubjectCategory from '@/domain/entities/SubjectCategory';
+import Category from '@/application/filters/Category';
+import DegreeCategory from '@/application/filters/DegreeCategory';
+import SubjectCategory from '@/application/filters/SubjectCategory';
 import React, { useState } from 'react';
 interface FilterSelectorProps {
     categories: Category[]

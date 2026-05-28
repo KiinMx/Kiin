@@ -1,4 +1,4 @@
-import Category from "@/domain/entities/Category";
+import Category from "@/application/filters/Category";
 
 import { Subject } from "@/domain/entities/Subject";
 import React, { useState } from "react";

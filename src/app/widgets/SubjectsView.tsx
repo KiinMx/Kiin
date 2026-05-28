@@ -1,10 +1,12 @@
-import Category from '@/domain/entities/Category';
+import Category from '@/application/filters/Category';
+import SubjectCategory from '@/application/filters/SubjectCategory';
+import { Pivot } from '@/application/filters/Pivot';
 import { Professor } from '@/domain/entities/Professor';
 import { Subject } from '@/domain/entities/Subject';
-import SubjectCategory from '@/domain/entities/SubjectCategory';
-import { ProfessorsCsvDataSource } from '@/infrastructure/datasource/ProfessorsCsvDataSource';
+import { AcademicOfferRepository } from '@/domain/repositories/AcademicOfferRepository';
+import { LocalAcademicOfferRepository } from '@/infrastructure/repositories/LocalAcademicOfferRepository';
+import { RemoteAcademicOfferRepository } from '@/infrastructure/repositories/RemoteAcademicOfferRepository';
 import { useEffect, useState } from 'react';
-import { Pivot } from '../../domain/entities/Pivot';
 import FilterSelector from '../components/FilterSelector';
 import SideBar from '../components/SideBar';
 
@@ -40,8 +42,11 @@ function SubjectsView({
     const [professorsData, setProfessorsData] = useState<Professor[]>([])
 
     const getProfessors = async () => {
-        const professorsDataSource = new ProfessorsCsvDataSource()
-        const professorsData = await professorsDataSource.getAll();
+        const repo: AcademicOfferRepository = new LocalAcademicOfferRepository(
+            new RemoteAcademicOfferRepository("fmat"),
+            "fmat"
+        );
+        const professorsData = await repo.getProfessors();
         setProfessorsData(professorsData)
     }
 
@@ -51,9 +56,7 @@ function SubjectsView({
 
 
 
-    useEffect(() => {
-        console.log(pinnedSubjects)
-    }, [pinnedSubjects])
+    
 
     return (
         <div className='h-full flex flex-col relative '>

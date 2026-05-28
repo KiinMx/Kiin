@@ -1,5 +1,5 @@
+import DegreeCategory from "@/application/filters/DegreeCategory";
 import { Degree } from "@/domain/entities/Degree";
-import DegreeCategory from "@/domain/entities/DegreeCategory";
 
 describe("CP-1: Validar método onClick de DegreeCategory", () => {
   let degreeA: Degree;

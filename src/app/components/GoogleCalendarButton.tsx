@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import type { Schedule } from '../../domain/entities/Schedule';
-import { Pivot } from '@/domain/entities/Pivot';
+import { Pivot } from '@/application/filters/Pivot';
 import { useGoogleAuth } from '@/app/hooks/useGoogleAuth';
 
 interface GoogleCalendarButtonProps {
@@ -147,24 +147,10 @@ export default function GoogleCalendarButton({ schedule, recurrenceStart, recurr
           // Mapeo de día
           const dayEn = diasMap[session.day] || session.day;
           const firstDate = getNextDateOfDay(recurrenceStart, dayEn);
-          // Extracción robusta de horas/minutos usando Moment
-          let startHour = 0, startMinute = 0, endHour = 0, endMinute = 0;
-          if (session.startHour && typeof session.startHour.hour === 'function' && typeof session.startHour.minute === 'function') {
-            startHour = session.startHour.hour();
-            startMinute = session.startHour.minute();
-          } else if (typeof session.startHour === 'string') {
-            const parts = (session.startHour as string).split(':');
-            startHour = Number(parts[0]);
-            startMinute = Number(parts[1]);
-          }
-          if (session.endHour && typeof session.endHour.hour === 'function' && typeof session.endHour.minute === 'function') {
-            endHour = session.endHour.hour();
-            endMinute = session.endHour.minute();
-          } else if (typeof session.endHour === 'string') {
-            const parts = (session.endHour as string).split(':');
-            endHour = Number(parts[0]);
-            endMinute = Number(parts[1]);
-          }
+          const startHour = session.hours;
+          const startMinute = session.minutes;
+          const endHour = session.endHours;
+          const endMinute = session.endMinutes;
           // Validaciones de datos
           if (
             isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute) ||
@@ -174,7 +160,7 @@ export default function GoogleCalendarButton({ schedule, recurrenceStart, recurr
             Swal.fire({
               icon: 'error',
               title: 'Error en datos de horario',
-              text: `No se pudo exportar la sesión de ${course.subject.name} (${session.day} ${session.startHour} - ${session.endHour}) por datos inválidos.`
+              text: `No se pudo exportar la sesión de ${course.subject.name} (${session.day} ${session.startHourFormatted} - ${session.endHourFormatted}) por datos inválidos.`
             });
             errorCount++;
             continue;

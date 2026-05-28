@@ -14,9 +14,6 @@ const ParticlesBackground = () => {
     }).then(() => setInit(true));
   }, []);
 
-  // const particlesLoaded = async (container?: Container): Promise<void> => {
-  //   console.log("Particles container loaded:", container);
-  // };
 
   const options: ISourceOptions = useMemo(
     () => ({

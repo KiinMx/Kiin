@@ -1,69 +1,30 @@
 import { Subject } from "@/domain/entities/Subject";
-import { CourseCSV } from "@/lib/data/CourseModel";
-import { CoursesModelDao } from "@/lib/data/CoursesModelDAO";
-import { globalInitialLoad } from "@/lib/data/initialLoad";
-import { SubjectMapper } from "@/lib/data/SubjectMapper";
+import { catalogState } from "@/infrastructure/state/catalogState";
+import { globalInitialLoad } from "@/application/use_cases/initialLoad";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Degrees } from "../degrees/all";
 
 export class Subjects {
-
-    private static _subjects: Subject[] = [];
-
     public static get subjects(): Subject[] {
-        return Subjects._subjects;
+        return catalogState.subjects;
     }
     public static set subjects(value: Subject[]) {
-        Subjects._subjects = value;
+        catalogState.subjects = value;
     }
 
-    public static async initialLoad() {
+    public static async initialLoad(schoolSlug: string) {
+        await globalInitialLoad(schoolSlug);
+    }
 
-
-        const results = await CoursesModelDao.getCourses();
-        let count = 0;
-
-        for (const result of results) {
-            if (this.findSubject(result) === undefined) {
-                count++;
-
-                this.subjects.push(SubjectMapper.fromModelToEntity(count, result));
-
-                const degreesString = result.PE.split("-");
-
-                degreesString.forEach((degreeString) => {
-                    const degree = Degrees.findDegree(degreeString.trim());
-                    if (degree) {
-                        degree.addSubject(this.subjects[count - 1]);
-                        this.subjects[count - 1].addDegree(degree.id);
-                    }
-                })
-            }
+    public static async getAll(schoolSlug: string) {
+        if (catalogState.schoolSlug !== schoolSlug || this.subjects.length === 0) {
+            await globalInitialLoad(schoolSlug);
         }
-    }
-
-    public static findSubject(result: CourseCSV): Subject | undefined {
-        return this.subjects.find(
-            (subject) =>
-                subject.name === result.Asignatura &&
-                subject.degreeResume === result.PE
-        )
-    }
-
-    public static async getAll() {
-
-        if (this._subjects.length === 0) {
-            await globalInitialLoad();
-        }
-
-        return this._subjects;
+        return this.subjects;
     }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-
-    const subjects = await Subjects.getAll();
+    const school = req.query.school as string || 'fmat';
+    const subjects = await Subjects.getAll(school);
     return res.status(200).json(subjects);
 }
-
-

@@ -3,6 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React, { useEffect, useMemo, useState } from 'react';
 import ParticlesContainer from './components/ParticlesContainer';
+import { School } from '@/domain/entities/School';
+
 const HomeContent: React.FC = () => {
   const words = useMemo(() => ['Inteligente', 'Eficiente', 'Rápida', 'Fácil', 'Visual'], []);
   const colors = useMemo(() => [
@@ -24,14 +26,12 @@ const HomeContent: React.FC = () => {
 
     setDisplayText('');
 
-    // Typing animation
     const typeText = (index: number) => {
       if (index <= currentWord.length) {
         setDisplayText(currentWord.slice(0, index));
         if (index < currentWord.length) {
           timeoutId = setTimeout(() => typeText(index + 1), 150);
         } else {
-          // Wait before starting to delete
           timeoutId = setTimeout(() => {
             deleteText(currentWord.length);
           }, 2000);
@@ -39,14 +39,12 @@ const HomeContent: React.FC = () => {
       }
     };
 
-    // Deleting animation
     const deleteText = (index: number) => {
       if (index >= 0) {
         setDisplayText(currentWord.slice(0, index));
         if (index > 0) {
           timeoutId = setTimeout(() => deleteText(index - 1), 75);
         } else {
-          // Move to next word after a short delay
           timeoutId = setTimeout(() => {
             setCurrentWordIndex((prevIndex) => (prevIndex + 1) % words.length);
           }, 500);
@@ -54,7 +52,6 @@ const HomeContent: React.FC = () => {
       }
     };
 
-    // Start typing after a short delay
     timeoutId = setTimeout(() => typeText(0), 300);
 
     return () => {
@@ -63,23 +60,21 @@ const HomeContent: React.FC = () => {
   }, [currentWordIndex, words]);
 
   return (
-    <div className=' h-full overflow-auto flex-col'>
+    <div className='h-full overflow-auto flex-col'>
       <ParticlesContainer />
-      <div className=" relative  h-full">
-        <div className="container mx-auto flex h-full flex-col-reverse lg:flex-row items-center justify-center  gap-6 px-4">
+      <div className="relative h-full">
+        <div className="container mx-auto flex h-full flex-col-reverse lg:flex-row items-center justify-center gap-6 px-4">
           <div className="max-w-2xl text-center lg:text-left flex flex-col gap-10 items-center lg:items-start justify-center">
             <h1 className="text-5xl text-wrap sm:text-5xl lg:text-7xl leading-tight flex flex-col items-center sm:items-start">
               Planea tu Carga Académica de forma
               <span
                 className={`
-                ${colors[currentWordIndex]} 
+                ${colors[currentWordIndex]}
                 typewriter-text
                 font-bold
                 w-max
                 border
-              
               `}
-                
               >
                 {displayText}
                 <span className="typewriter-cursor">
@@ -90,11 +85,20 @@ const HomeContent: React.FC = () => {
             <p className="text-lg sm:text-xl lg:text-2xl">
               De estudiantes para estudiantes
             </p>
-            <Link href={'/generador'}>
-              <button className="block py-3 px-10 bg-purple-500 hover:bg-orange-700 text-white font-bold rounded-xl transform transition-transform duration-150 active:scale-110">
-                Comenzar
-              </button>
-            </Link>
+            <div className="flex flex-col gap-3 w-full max-w-md">
+              <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">Selecciona tu facultad</p>
+              <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+                {School.ALL.map((school) => (
+                  <Link key={school.id} href={`/generador?school=${school.slug}`}>
+                    <button
+                      className="py-2.5 px-5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-lg transform transition-all duration-150 hover:scale-105 active:scale-95 text-sm sm:text-base"
+                    >
+                      {school.name}
+                    </button>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="mx-16 flex justify-center lg:justify-start mt-6 lg:mx-0 xl:mx-0 2xl:mx-9">
             <Image
@@ -108,7 +112,6 @@ const HomeContent: React.FC = () => {
         </div>
       </div>
     </div>
-
   );
 }
 

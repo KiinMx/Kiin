@@ -1,19 +1,18 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { Schedule } from "@/domain/entities/Schedule";
-import { ScheduleGenerator } from "@/domain/entities/ScheduleGenerator";
-import { Pivot } from "@/domain/entities/Pivot";
-import Category from "@/domain/entities/Category";
-import SubjectCategory from "@/domain/entities/SubjectCategory";
-import { CoursesCsvDatasource } from "@/infrastructure/datasource/CoursesCsvDatasource";
-import { DegreesCsvDataSource } from "@/infrastructure/datasource/DegreesCsvDataSource";
-import { SubjectsCsvDataSource } from "@/infrastructure/datasource/SubjectsCSvDataSource";
-import { FilterImpl } from "@/infrastructure/datasource/FilterImpl";
-import { PinnedSubjectFilter } from "@/domain/entities/PinnedSubjectFilter";
-import { PivotFilter } from "@/domain/entities/PivotFilter";
-import { PostGenerationFilter } from "@/domain/entities/PostGenerationFilter";
+import Category from "@/application/filters/Category";
+import { default as CourseFilter } from "@/application/filters/CourseFilter";
+import { Pivot } from "@/application/filters/Pivot";
+import SubjectCategory from "@/application/filters/SubjectCategory";
 import { Degree } from "@/domain/entities/Degree";
-import DegreeCategory from "@/domain/entities/DegreeCategory";
+import { School } from "@/domain/entities/School";
+import { Schedule } from "@/domain/entities/Schedule";
 import { Subject } from "@/domain/entities/Subject";
+import { ScheduleUseCase } from "@/domain/use_cases/ScheduleUseCase";
+import { AcademicOfferRepository } from "@/domain/repositories/AcademicOfferRepository";
+import { LocalAcademicOfferRepository } from "@/infrastructure/repositories/LocalAcademicOfferRepository";
+import { RemoteAcademicOfferRepository } from "@/infrastructure/repositories/RemoteAcademicOfferRepository";
+import { container } from "@/infrastructure/container";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CompareProfessorsUseCase } from "@/domain/use_cases/CompareProfessorsUseCase";
 
 interface NotificationState {
     message: string;
@@ -40,9 +39,24 @@ interface UseScheduleGeneratorReturn {
     defaultSubjectsCount: number;
     page: number;
     setPage: React.Dispatch<React.SetStateAction<number>>;
+    school: School | undefined;
 }
 
-export function useScheduleGenerator(): UseScheduleGeneratorReturn {
+export function useScheduleGenerator(schoolSlug: string): UseScheduleGeneratorReturn {
+    const scheduleUseCase = useMemo(() => new ScheduleUseCase(), []);
+    const school = useMemo(() => School.fromSlug(schoolSlug), [schoolSlug]);
+
+    const repository = useMemo(() => {
+        const key = `AcademicOfferRepository:${schoolSlug}`;
+        container.register(key, () =>
+            new LocalAcademicOfferRepository(
+                new RemoteAcademicOfferRepository(schoolSlug),
+                schoolSlug
+            )
+        );
+        return container.resolve<AcademicOfferRepository>(key);
+    }, [schoolSlug]);
+
     const [generatedSchedules, setGeneratedSchedules] = useState<Schedule[]>([]);
     const [currentCategories, setCurrentCategories] = useState<Category[]>([]);
     const [pivots, setPivots] = useState<Pivot[]>([]);
@@ -71,78 +85,37 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
         return generatedSchedules;
     }, [generatedSchedules, selectedSubjectsCount]);
 
-    const removeOrphanPinnedItems = useCallback((categories: Category[]): {
-        cleanPinnedSubjects: number[];
-        cleanPivots: Pivot[];
-    } => {
-        const semestersWithSubjectsSelected = categories.filter(
-            c => c instanceof SubjectCategory
-        );
-        const selectedSubjectIds = semestersWithSubjectsSelected.flatMap(
-            s => s.selectedValues.flatMap(sv => (sv as { id: number }).id)
-        );
-        return {
-            cleanPinnedSubjects: pinnedSubjects.filter(id =>
-                selectedSubjectIds.includes(id)
-            ),
-            cleanPivots: pivots.filter(p =>
-                selectedSubjectIds.includes(p.idSubject)
-            )
-        };
-    }, [pinnedSubjects, pivots]);
-
     const generateSchedules = useCallback(async (categories: Category[]) => {
         showNotification("Generando horarios...");
 
-        const data = new CoursesCsvDatasource();
-        const filter = new FilterImpl(categories.map(c => c.toCourseFilter()));
-        const courses = await data.getCoursesByFilter(filter);
+        const allCourses = await repository.getCourses();
 
-        if (courses.length === 0) {
+        const courseFilters: CourseFilter[] = categories.map(c => c.toCourseFilter());
+        const filteredCourses = allCourses.filter(course =>
+            courseFilters.every(f => f.satisfy(course))
+        );
+
+        if (filteredCourses.length === 0) {
             setGeneratedSchedules([]);
             setIsFilterCoursesEmpty(true);
             setNotification({ message: "", visible: false });
             return;
         }
 
-        const generator = new ScheduleGenerator();
-        const schedules = generator.generateSchedules(courses);
+        const result = scheduleUseCase.generateSchedules(filteredCourses, pinnedSubjects, pivots);
 
-        const pipeline: PostGenerationFilter[] = [
-            new PinnedSubjectFilter(pinnedSubjects),
-            new PivotFilter(pivots)
-        ];
-
-        const filtered = pipeline.reduce(
-            (result, filter) => filter.apply(result),
-            schedules
-        );
-
-        const sorted = filtered.sort((a, b) => b.courses.length - a.courses.length);
-        const maxCourses = sorted.length > 0
-            ? Math.max(...sorted.map(s => s.courses.length))
-            : 0;
-
-        setDefaultSubjectsCount(maxCourses);
-        setGeneratedSchedules(sorted);
-        showNotification(`${sorted.length} Horarios Generados!`);
-    }, [pinnedSubjects, pivots, showNotification]);
+        setDefaultSubjectsCount(result.maxCourses);
+        setGeneratedSchedules(result.schedules);
+        showNotification(`${result.schedules.length} Horarios Generados!`);
+    }, [pinnedSubjects, pivots, scheduleUseCase, showNotification, repository]);
 
     const handleCategoryClick = useCallback((categories: Category[]) => {
         setCurrentCategories(categories);
-        const { cleanPinnedSubjects, cleanPivots } = removeOrphanPinnedItems(categories);
+        const { cleanPinnedSubjects, cleanPivots, maxSubjectsCount } = scheduleUseCase.cleanOrphanedState(categories, pinnedSubjects, pivots);
         setPinnedSubjects(cleanPinnedSubjects);
         setPivots(cleanPivots);
-
-        const semestersWithSubjectsSelected = categories.filter(
-            c => c instanceof SubjectCategory
-        );
-        let count = 0;
-        semestersWithSubjectsSelected.forEach(c => {
-            count += c.selectedValues.length;
-        });
-        setMaxSubjectsCount(count);
-    }, [removeOrphanPinnedItems]);
+        setMaxSubjectsCount(maxSubjectsCount);
+    }, [pinnedSubjects, pivots, scheduleUseCase]);
 
     const handleRemoveSubject = useCallback((categoryIndex: number, subjectId: number) => {
         const newCategories = [...currentCategories];
@@ -164,13 +137,11 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
     }, [currentCategories, pivots, pinnedSubjects, generateSchedules]);
 
     const mapCategories = useCallback(async () => {
-        const degrees: Degree[] = await (new DegreesCsvDataSource()).getAll();
-        const degreesCategory: Category = new DegreeCategory("Carrera", degrees);
-        const subjects: Subject[] = await (new SubjectsCsvDataSource()).getAll();
-        const semesters: SubjectCategory[] = Array(9).fill(0).map((_, index) => new SubjectCategory(index + 1, subjects));
-
-        setCurrentCategories([degreesCategory, ...semesters]);
-    }, []);
+        if (!school) return;
+        const degrees: Degree[] = await repository.getDegrees();
+        const subjects: Subject[] = await repository.getSubjects();
+        setCurrentCategories(scheduleUseCase.buildInitialCategories(degrees, subjects));
+    }, [scheduleUseCase, school, repository]);
 
     useEffect(() => {
         mapCategories();
@@ -182,6 +153,12 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
             setIsFilterCoursesEmpty(false);
         }
     }, [isFilterCoursesEmpty]);
+
+    const compareProfessors = useCallback(async (subjectId: number) => {
+    const allCourses = await repository.getCourses();
+    const useCase = new CompareProfessorsUseCase();
+    return useCase.execute(subjectId, allCourses);
+    }, [repository]);
 
     return {
         generatedSchedules,
@@ -202,6 +179,7 @@ export function useScheduleGenerator(): UseScheduleGeneratorReturn {
         maxSubjectsCount,
         defaultSubjectsCount,
         page,
-        setPage
+        setPage,
+        school,
     };
 }

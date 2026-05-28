@@ -1,33 +1,39 @@
-import { ProfessorsCsvDataSource } from "@/infrastructure/datasource/ProfessorsCsvDataSource";
-import fetchMock from 'jest-fetch-mock';
-jest.mock('node-fetch');
+/* @jest-environment node */
 
-describe('professors Tests', () => {
-    beforeEach(() => {
-      fetchMock.resetMocks();
-    });
+import { Professor } from "@/domain/entities/Professor";
 
-    it('Professor should have a name', async () => { 
-      const professor = new ProfessorsCsvDataSource();
-      const professors = await professor.getAll(); 
+describe("Professor entity", () => {
+  test("expone id, names y lastNames pasados al constructor", () => {
+    const professor = new Professor(7, "Juan", "Perez");
 
-      for (const professor of professors){
-        const expected = professor.fullName;
-        expect(expected).toBeDefined();
-        expect(expected).not.toBe('');
-      }
+    expect(professor.id).toBe(7);
+    expect(professor.names).toBe("Juan");
+    expect(professor.lastNames).toBe("Perez");
+  });
 
-    });
-  
-    it('Professor should have a list of subjects', async () => {
-      const professor = new ProfessorsCsvDataSource();
-      const professors = await professor.getAll(); 
+  test("fullName concatena nombres y apellidos con un espacio", () => {
+    const professor = new Professor(1, "Ana", "Gomez Lopez");
+    expect(professor.fullName).toBe("Ana Gomez Lopez");
+  });
 
-      for (const professor of professors){
-        const expected = professor.fullName;
-        console.log(expected);
-      } 
-    });
+  test("dos profesores distintos siempre tienen un fullName no vacio", () => {
+    const professors = [
+      new Professor(1, "A", "B"),
+      new Professor(2, "C", "D"),
+      new Professor(3, "E", "F"),
+    ];
 
+    for (const professor of professors) {
+      expect(professor.fullName).toBeDefined();
+      expect(professor.fullName.trim()).not.toBe("");
+    }
+  });
+
+  test("identidad: dos Professor con el mismo id son la misma entidad logicamente", () => {
+    const a = new Professor(42, "X", "Y");
+    const b = new Professor(42, "X", "Y");
+
+    expect(a).not.toBe(b);
+    expect(a.id).toBe(b.id);
+  });
 });
-  

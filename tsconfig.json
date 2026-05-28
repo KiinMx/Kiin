@@ -40,7 +40,6 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "src/Test"
+    "node_modules"
   ]
 }

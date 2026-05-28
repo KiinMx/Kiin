@@ -1,4 +1,5 @@
 /* @jest-environment node */
+
 import ScheduleUseCase from "@/domain/use_cases/ScheduleUseCase";
 import { Pivot } from "@/application/filters/Pivot";
 import SubjectCategory from "@/application/filters/SubjectCategory";
@@ -16,10 +17,11 @@ describe("ScheduleUseCase", () => {
 
     const categories = useCase.buildInitialCategories(degrees, subjects, 3);
 
-    expect(categories.length).toBe(5); // 1 carrera + 3 semestres + 1 sin semestre
-    // first should be DegreeCategory (title 'Carrera')
+    expect(categories.length).toBe(5);
     expect(categories[0].title).toBe("Carrera");
     expect(categories[1]).toBeInstanceOf(SubjectCategory);
+    expect(categories[categories.length - 1]).toBeInstanceOf(SubjectCategory);
+    expect(categories[categories.length - 1].title).toBe("Sin semestre");
   });
 
   test("cleanOrphanedState filters pinned subjects and pivots", () => {
@@ -27,7 +29,6 @@ describe("ScheduleUseCase", () => {
     const subjects = [new Subject(10, "Matematicas", "Ing", "modelo", "teorica", [1], 6)];
     const subjectCategory = new SubjectCategory(1, subjects);
 
-    // select the subject
     subjectCategory.onClick(10);
 
     const pinned = [10, 99];
@@ -49,10 +50,9 @@ describe("ScheduleUseCase", () => {
     const prof1 = new Professor(1, "Juan", "Perez");
     const prof2 = new Professor(2, "Ana", "Gomez");
 
-    const c1 = new Course(1, subj1, prof1, 1, "P", 4, false);
-    const c2 = new Course(2, subj2, prof2, 1, "P", 4, false);
+    const c1 = new Course(1, subj1, prof1, "1", "P", 4, false);
+    const c2 = new Course(2, subj2, prof2, "1", "P", 4, false);
 
-    // non-overlapping sessions: 08:00-10:00 and 10:00-12:00 same day
     const s1 = new Session("Lunes", Session.fromTimeString("08:00"), Session.fromTimeString("10:00"), "A1");
     const s2 = new Session("Lunes", Session.fromTimeString("10:00"), Session.fromTimeString("12:00"), "A1");
 

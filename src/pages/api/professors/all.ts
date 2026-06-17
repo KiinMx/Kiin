@@ -39,10 +39,18 @@ export class Professors {
     }
 
     public static findProfessor(result: CourseCSV): Professor | undefined {
+        const normalize = (s?: string) =>
+            (s || '')
+                .toString()
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+
         return this._professors.find(
             (professor) =>
-                professor.names === result.Nombres &&
-                professor.lastNames === result.Apellidos
+                normalize(professor.names) === normalize(result.Nombres) &&
+                normalize(professor.lastNames) === normalize(result.Apellidos)
         )
     }
 

@@ -123,7 +123,7 @@ function parseExcelFileName(filename: string, fullPath: string): ExcelFileInfo |
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const excelDate = await getLatestExcelFileDate();
-    const currentVersion = `1.5.0_${excelDate}`;
+    const currentVersion = `1.5.1_${excelDate}`;
 
     return res.status(200).json(currentVersion);
 }

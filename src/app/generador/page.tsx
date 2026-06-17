@@ -7,6 +7,7 @@ import SchedulesView from "../widgets/SchedulesView";
 import SubjectsView from "../widgets/SubjectsView";
 import CurrentSchedule from "../widgets/CurrentSchedule";
 import { useState, useEffect, useRef } from "react";
+import WelcomeModal from "@/app/components/WelcomeModal";
 
 const GeneratorPage = () => {
     const [indexSelected, setIndexSelected] = useState(0);
@@ -108,6 +109,7 @@ const GeneratorPage = () => {
 
     return (
         <div className="flex flex-1 flex-col overflow-auto">
+            <WelcomeModal />
             {notification.visible && (
                 <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-purple-600 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in">
                     {notification.message}

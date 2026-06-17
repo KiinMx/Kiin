@@ -9,8 +9,15 @@
   --scrollbar-thumb: #cccccc;
 }
 
+.dark {
+  --background: #111111;
+  --foreground: #ededed;
+  --scrollbar-bg: transparent;
+  --scrollbar-thumb: rgb(135, 135, 135);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light):not(.dark) {
     --background: #111111;
     --foreground: #ededed;
     --scrollbar-bg: transparent;

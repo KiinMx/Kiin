@@ -43,10 +43,18 @@ export class Subjects {
     }
 
     public static findSubject(result: CourseCSV): Subject | undefined {
+        const normalize = (s?: string) =>
+            (s || '')
+                .toString()
+                .trim()
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+
         return this.subjects.find(
             (subject) =>
-                subject.name === result.Asignatura &&
-                subject.degreeResume === result.PE
+                normalize(subject.name) === normalize(result.Asignatura) &&
+                normalize(subject.degreeResume) === normalize(result.PE)
         )
     }
 

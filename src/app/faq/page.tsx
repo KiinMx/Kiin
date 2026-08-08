@@ -51,12 +51,12 @@ const FaqPage = () => {
     {
       pregunta: "¿Cómo podemos apoyarlos?",
       respuesta:
-        "Comparte en redes sociales para que todos los estudiantes se enteren. Si quieres involucrarte más en el desarrollo visita el repositorio de GitHub en https://github.com/iKinoo/Kiin. O contáctate con Rodrigo Pacab",
+        "Comparte en redes sociales para que todos los estudiantes se enteren. Si quieres involucrarte más en el desarrollo visita el repositorio de GitHub en https://github.com/KiinMx/Kiin. O contáctate con Rodrigo Pacab",
     },
     {
       pregunta: "¿Dónde puedo obtener más información?",
       respuesta:
-        "Puedes consultar nuestra página oficial en https://www.linkedin.com/company/kiinmx/ o el repositorio de GitHub en https://github.com/iKinoo/Kiin",
+        "Puedes consultar nuestra página oficial en https://www.linkedin.com/company/kiinmx/ o el repositorio de GitHub en https://github.com/KiinMx/Kiin",
         
     },
   ];

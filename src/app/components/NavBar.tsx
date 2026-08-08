@@ -110,7 +110,7 @@ const NavBar: React.FC<NavBarProps> = ({ links }) => {
                             <ThemeToggle />
                         </li>
                         <li className='flex flex-row gap-2'>
-                            <a href="https://github.com/iKinoo/Kiin" target='_blank' className='flex flex-row items-center justify-center px-3 py-2 text-gray-900 rounded hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'>
+                            <a href="https://github.com/KiinMx/Kiin" target='_blank' className='flex flex-row items-center justify-center px-3 py-2 text-gray-900 rounded hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'>
                                 <span className="sr-only">GitHub</span>
                                 <svg
                                     className='w-6 h-6 hidden dark:block'

@@ -21,8 +21,8 @@ type Props = {
 function CurrentSchedule({ schedule, pivots, label, pinnedSubjects, showConflicts: externalShowConflicts, setShowConflicts: externalSetShowConflicts }: Props) {
 
     //Prueba de google
-    const [start] = useState(new Date('2026-01-12T08:00:00'));
-    const [end] = useState(new Date('2026-05-28T09:00:00'));
+    const [start] = useState(new Date('2026-08-12T08:00:00'));
+    const [end] = useState(new Date('2026-12-10T09:00:00'));
     const session = useSession();
     const { signInWithGoogle } = useGoogleAuth();
 
